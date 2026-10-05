@@ -62,4 +62,27 @@ describe('copia de seguridad', () => {
   it('pone fecha al nombre del archivo', () => {
     expect(backupFileName(now)).toBe('lockin-copia-2026-10-05.json')
   })
+
+  it('rechaza copias con apartados de forma rara sin tocar los datos', () => {
+    expect(() => parseBackup('{"app":"LockIn","version":1,"data":{"tasks":{}}}')).toThrow(/dañada/)
+    expect(() => parseBackup('{"app":"LockIn","version":1,"data":{"profile":null}}')).toThrow(/dañada/)
+  })
+
+  it('si no cabe, deja los datos como estaban', () => {
+    const storage = fakeStorage({ 'student-app:tasks': '["mía"]' })
+    const setItem = storage.setItem
+    storage.setItem = (k: string, v: string) => {
+      if (k === 'student-app:notes') throw new Error('QuotaExceededError')
+      setItem(k, v)
+    }
+    const backup = { app: 'LockIn' as const, version: 1 as const, exportedAt: '', data: { tasks: [], notes: ['enorme'] } }
+    expect(() => restoreBackup(storage, backup)).toThrow(/demasiado grande/)
+    expect(storage.map.get('student-app:tasks')).toBe('["mía"]')
+  })
+
+  it('borrar todo también puede borrar las claves de IA', () => {
+    const storage = fakeStorage({ 'student-app:tasks': '[]', 'student-app:ai-settings': '{}' })
+    clearData(storage, { keepSecrets: false })
+    expect(storage.map.size).toBe(0)
+  })
 })

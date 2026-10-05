@@ -1,7 +1,7 @@
 import { ToastProvider } from './components/Toast'
 import { AccountsProvider } from './features/accounts/AccountsContext'
 import { StudyBrowser } from './features/browser/StudyBrowser'
-import { FOCUS_MODE_CLASS, useFocusMode } from './features/focus/focusMode'
+import { useFocusLayoutClass } from './features/focus/useFocusLayoutClass'
 import { MusicProvider } from './features/music/MusicContext'
 import { MusicPanel } from './features/music/MusicPanel'
 import { AppearanceProvider } from './features/settings/AppearanceContext'
@@ -11,8 +11,26 @@ import { TimerProvider } from './features/timer/TimerContext'
 import { TimerPrompt } from './features/timer/TimerPrompt'
 import { TopBar } from './TopBar'
 
+/** Maquetación: dentro de los proveedores para saber si este reloj está en un bloque (modo foco). */
+function Layout() {
+  const focusClass = useFocusLayoutClass()
+  return (
+    <main className={focusClass ? `layout ${focusClass}` : 'layout'}>
+      <div className="col col-left">
+        <FocusTimer />
+        <TaskList />
+      </div>
+      <div className="col col-main">
+        <StudyBrowser />
+      </div>
+      <div className="col col-right">
+        <MusicPanel />
+      </div>
+    </main>
+  )
+}
+
 export default function App() {
-  const focusMode = useFocusMode()
   return (
     <AppearanceProvider>
       <ToastProvider>
@@ -21,18 +39,7 @@ export default function App() {
             <MusicProvider>
               <div className="app">
                 <TopBar />
-                <main className={focusMode.on ? `layout ${FOCUS_MODE_CLASS}` : 'layout'}>
-                  <div className="col col-left">
-                    <FocusTimer />
-                    <TaskList />
-                  </div>
-                  <div className="col col-main">
-                    <StudyBrowser />
-                  </div>
-                  <div className="col col-right">
-                    <MusicPanel />
-                  </div>
-                </main>
+                <Layout />
               </div>
               <TimerPrompt />
             </MusicProvider>

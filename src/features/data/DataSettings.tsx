@@ -70,7 +70,7 @@ export function DataSettings() {
               type="button"
               className="btn btn-danger"
               onClick={() => {
-                clearData(localStorage)
+                clearData(localStorage, { keepSecrets: false })
                 window.location.reload()
               }}
             >
@@ -83,7 +83,7 @@ export function DataSettings() {
         ) : (
           <div>
             <button type="button" className="btn btn-ghost" onClick={() => setConfirmClear(true)}>
-              <Trash2 size={16} /> Borrar todos mis datos de este navegador
+              <Trash2 size={16} /> Borrar todos mis datos (también las claves de IA)
             </button>
           </div>
         )}

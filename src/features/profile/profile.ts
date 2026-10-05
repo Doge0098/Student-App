@@ -96,11 +96,12 @@ export const profileStore = createStore<Profile>('profile', {
 })
 
 export function useProfile() {
-  const [stored, setProfile] = useStore(profileStore)
+  const [raw, setProfile] = useStore(profileStore)
+  const stored: Partial<Profile> = raw && typeof raw === 'object' ? raw : {}
   // Datos de versiones anteriores o editados a mano: se sanean.
   const profile: Profile = {
-    level: stored.level && stored.level in LEVELS ? stored.level : null,
-    mode: stored.mode in MODES ? stored.mode : 'normal',
+    level: typeof stored.level === 'string' && stored.level in LEVELS ? stored.level : null,
+    mode: typeof stored.mode === 'string' && stored.mode in MODES ? stored.mode : 'normal',
     extraDistractions: Array.isArray(stored.extraDistractions) ? stored.extraDistractions : [],
   }
   return {

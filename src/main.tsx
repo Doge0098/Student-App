@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 // La base común va primero: así el CSS propio de cada función puede ajustarla.
 import './styles.css'
 import App from './App'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { platform } from './platform'
 import { captureInstallPrompt, registerServiceWorker } from './platform/install'
 
@@ -12,6 +13,8 @@ if (import.meta.env.PROD && !platform.isDesktop) registerServiceWorker()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )

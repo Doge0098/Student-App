@@ -29,18 +29,18 @@ function systemPrefersDark() {
 }
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
-  const [stored, setStored] = usePersistentState<Appearance>('appearance', DEFAULT_APPEARANCE)
+  const [raw, setStored] = usePersistentState<Appearance>('appearance', DEFAULT_APPEARANCE)
   const [systemDark, setSystemDark] = useState(systemPrefersDark)
 
   // Datos guardados de versiones anteriores o modificados a mano: se sanean.
-  const appearance: Appearance = useMemo(
-    () => ({
-      theme: ['light', 'dark', 'system'].includes(stored.theme) ? stored.theme : 'system',
+  const appearance: Appearance = useMemo(() => {
+    const stored: Partial<Appearance> = raw && typeof raw === 'object' ? raw : {}
+    return {
+      theme: stored.theme === 'light' || stored.theme === 'dark' || stored.theme === 'system' ? stored.theme : 'system',
       accent: isColorId(stored.accent) ? stored.accent : DEFAULT_COLOR,
-      panels: stored.panels ?? {},
-    }),
-    [stored],
-  )
+      panels: stored.panels && typeof stored.panels === 'object' ? stored.panels : {},
+    }
+  }, [raw])
 
   useEffect(() => {
     const query = window.matchMedia('(prefers-color-scheme: dark)')

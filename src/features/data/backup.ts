@@ -59,22 +59,67 @@ export function parseBackup(text: string): Backup {
     throw new Error('El archivo no es una copia de LockIn.')
   }
   if (b.version !== 1) throw new Error('Esta copia es de una versión de LockIn que no se reconoce.')
-  return { app: 'LockIn', version: 1, exportedAt: String(b.exportedAt ?? ''), data: b.data }
+  const data = b.data as Record<string, unknown>
+  for (const [key, value] of Object.entries(data)) {
+    const shape = KEY_SHAPES[key]
+    if (shape && !shape(value)) throw new Error(DAMAGED)
+  }
+  return { app: 'LockIn', version: 1, exportedAt: String(b.exportedAt ?? ''), data }
 }
 
-/** Sustituye los datos actuales por los de la copia. Devuelve cuántos apartados se han cargado. */
+const DAMAGED = 'La copia está dañada; tus datos no se han tocado.'
+
+const isList = (v: unknown) => Array.isArray(v)
+const isObject = (v: unknown) => typeof v === 'object' && v !== null && !Array.isArray(v)
+
+/** Forma que debe tener cada apartado conocido: si no la tiene, la copia no se carga. */
+const KEY_SHAPES: Record<string, (v: unknown) => boolean> = {
+  tasks: isList,
+  notes: isList,
+  'browser-history': isList,
+  'browser-tabs': isList,
+  'music-stations': isList,
+  'my-apps': isList,
+  flashcards: isObject,
+  profile: isObject,
+  appearance: isObject,
+  'timer-stats': isObject,
+  'timer-settings': isObject,
+}
+
+/**
+ * Sustituye los datos actuales por los de la copia. Devuelve cuántos apartados se han cargado.
+ * Si algo falla a mitad (p. ej. no cabe), se deja todo como estaba.
+ */
 export function restoreBackup(storage: WritableStorage, backup: Backup): number {
+  const snapshot = new Map<string, string>()
+  for (const key of lockinKeys(storage)) {
+    const raw = storage.getItem(PREFIX + key)
+    if (raw !== null) snapshot.set(key, raw)
+  }
   clearData(storage)
   let count = 0
-  for (const [key, value] of Object.entries(backup.data)) {
-    if (EXCLUDED_KEYS.includes(key) || !/^[\w-]+$/.test(key)) continue
-    storage.setItem(PREFIX + key, JSON.stringify(value))
-    count++
+  try {
+    for (const [key, value] of Object.entries(backup.data)) {
+      if (EXCLUDED_KEYS.includes(key) || !/^[\w-]+$/.test(key)) continue
+      storage.setItem(PREFIX + key, JSON.stringify(value))
+      count++
+    }
+  } catch {
+    clearData(storage)
+    for (const [key, raw] of snapshot) {
+      try {
+        storage.setItem(PREFIX + key, raw)
+      } catch {
+        /* lo que no quepa ya no estaba antes */
+      }
+    }
+    throw new Error('La copia es demasiado grande para este navegador; tus datos no se han tocado.')
   }
   return count
 }
 
-/** Borra los datos de LockIn de este navegador (menos las claves de IA, que se borran desde la IA). */
+/** Borra los datos de LockIn de este navegador. Con keepSecrets (por defecto) se conservan las claves de IA. */
 export function clearData(storage: WritableStorage, { keepSecrets = true } = {}): void {
   for (const key of lockinKeys(storage)) {
     if (keepSecrets && key === 'ai-settings') continue

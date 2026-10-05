@@ -14,8 +14,10 @@ interface ModalProps {
 
 export function Modal({ open, title, icon, onClose, wide = false, children }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null)
+  const openRef = useRef(open)
 
   useEffect(() => {
+    openRef.current = open
     const dialog = ref.current
     if (!dialog) return
     if (open && !dialog.open) {
@@ -34,6 +36,12 @@ export function Modal({ open, title, icon, onClose, wide = false, children }: Mo
       onCancel={(e) => {
         e.preventDefault()
         onClose?.()
+      }}
+      onClose={() => {
+        // Chrome cierra el diálogo aunque se cancele Escape si se pulsa varias veces seguidas.
+        // Los avisos obligatorios (sin onClose) se vuelven a abrir: hay que elegir una opción.
+        const dialog = ref.current
+        if (dialog && openRef.current && !onClose && !dialog.open) dialog.showModal()
       }}
     >
       {open && (

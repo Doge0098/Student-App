@@ -13,9 +13,19 @@ function read<T>(key: string, fallback: T): T {
 
 /** Igual que useState, pero se guarda en el navegador y sobrevive a recargar la página. */
 export function usePersistentState<T>(key: string, initial: T | (() => T)) {
-  const [value, setValue] = useState<T>(() =>
-    read(key, typeof initial === 'function' ? (initial as () => T)() : initial),
-  )
+  const [fallback] = useState<T>(() => (typeof initial === 'function' ? (initial as () => T)() : initial))
+  const [value, setValue] = useState<T>(() => read(key, fallback))
+
+  // Otra pestaña de LockIn ha cambiado este dato (o lo ha borrado todo): se adopta su valor,
+  // para no volver a escribir encima una copia vieja.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== null && e.key !== PREFIX + key) return
+      setValue(read(key, fallback))
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [key, fallback])
 
   useEffect(() => {
     try {

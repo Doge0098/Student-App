@@ -32,7 +32,8 @@ export function createStore<T>(key: string, initial: T): Store<T> {
 
   if (typeof window !== 'undefined') {
     window.addEventListener('storage', (e) => {
-      if (e.key !== PREFIX + key) return
+      // key null = otra pestaña ha vaciado el almacenamiento entero.
+      if (e.key !== null && e.key !== PREFIX + key) return
       value = read(key, initial)
       notify()
     })
