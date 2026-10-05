@@ -106,7 +106,7 @@ export function MusicPanel() {
           const active = station.url === currentUrl
           return (
             <li key={station.id} className={`station ${active ? 'is-active' : ''}`}>
-              <button type="button" className="station-play" onClick={() => music.play(station.url)}>
+              <button type="button" className="station-play" onClick={() => (active ? music.toggle() : music.play(station.url))}>
                 <span className="station-icon" aria-hidden="true">
                   {active && music.isPlaying ? <Pause size={14} /> : <Play size={14} />}
                 </span>

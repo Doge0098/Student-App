@@ -1009,7 +1009,7 @@ div.tab {
 }
 
 /* Con poco ancho, las pestañas fijas (Inicio, Apps, Notas…) muestran solo su icono, salvo la activa. */
-@media (max-width: 1100px) {
+@media (max-width: 640px) {
   .tab-fixed:not(.is-active) .tab-title {
     position: absolute;
     width: 1px;
@@ -1672,6 +1672,24 @@ div.tab {
 
 .settings-tabs {
   align-self: stretch;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.settings-tabs button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Las ventanas de ajustes nunca se desbordan hacia los lados en el móvil. */
+.modal-wide {
+  overflow-x: hidden;
+}
+
+.modal-wide .btn {
+  white-space: normal;
+  text-align: center;
 }
 
 .segmented button {

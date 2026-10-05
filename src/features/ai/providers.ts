@@ -43,7 +43,16 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
 
 /** Quita espacios y comillas que se cuelan al copiar y pegar. */
 export function cleanKey(raw: string): string {
-  return raw.trim().replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, '')
+  return raw
+    .replace(/[\u200B-\u200D\u2060\uFEFF]/g, '') // espacios invisibles que se cuelan al copiar
+    .trim()
+    .replace(/^["'`“”‘’«»]+|["'`“”‘’«»]+$/g, '')
+    .replace(/\s+/g, '')
+}
+
+/** Una clave solo lleva caracteres ASCII visibles: si no, no se puede enviar y es que se copió mal. */
+export function hasOddCharacters(key: string): boolean {
+  return /[^\x21-\x7E]/.test(key)
 }
 
 /** ¿Parece una clave de este proveedor? Solo sirve para avisar; la comprobación real la hace el proveedor. */

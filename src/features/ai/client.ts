@@ -106,6 +106,8 @@ async function streamOnce(
   const reader = res.body.getReader()
   let text = ''
   let finish: 'stop' | 'max_tokens' | 'refusal' = 'stop'
+  // Ha llegado el evento final de la IA (si no, la conexión se cortó a medias).
+  let ended = false
 
   const handle = (events: ReturnType<typeof parser.feed>) => {
     for (const ev of events) {
@@ -115,6 +117,7 @@ async function streamOnce(
         text += step.delta
         onText(text)
       }
+      if (step.finish) ended = true
       if (step.finish && step.finish !== 'stop') finish = step.finish
     }
   }
@@ -130,6 +133,11 @@ async function streamOnce(
   } catch (error) {
     reader.cancel().catch(() => {})
     throw fetchFailure(ctx, error)
+  }
+  if (!ended && finish === 'stop') {
+    // La conexión se cerró sin el evento final: lo recibido no es una respuesta completa.
+    if (!text.trim()) throw makeError('network', ctx, 'stream ended early')
+    return { text, truncated: true }
   }
   return finishResult(ctx, text, finish)
 }

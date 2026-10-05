@@ -4,7 +4,7 @@ import { useToast } from '../../components/Toast'
 import { useStore } from '../../hooks/store'
 import { AiError } from './errors'
 import { pickDefaultModel } from './models'
-import { PROVIDERS, cleanKey, looksLikeKey, maskKey } from './providers'
+import { PROVIDERS, cleanKey, hasOddCharacters, looksLikeKey, maskKey } from './providers'
 import { loadModels, modelListStore, useAiSettings } from './store'
 import { PROVIDER_IDS, type ProviderId } from './types'
 
@@ -97,6 +97,10 @@ function KeyForm({ provider, onDone, onCancel }: { provider: ProviderId; onDone:
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!cleaned || checking) return
+    if (hasOddCharacters(cleaned)) {
+      setError(`La clave tiene caracteres raros. Cópiala otra vez desde la web de ${info.name}.`)
+      return
+    }
     setChecking(true)
     setError(null)
     try {
@@ -106,6 +110,18 @@ function KeyForm({ provider, onDone, onCancel }: { provider: ProviderId; onDone:
       setKey('')
       onDone()
     } catch (err) {
+      // Una clave limitada a usar modelos (sin permiso para listarlos) vale: el modelo se escribe a mano.
+      if (
+        err instanceof AiError &&
+        (err.kind === 'auth' || err.kind === 'forbidden') &&
+        /missing scopes|insufficient permissions/i.test(err.detail)
+      ) {
+        connect(provider, cleaned, undefined)
+        toast(`Conectado a ${info.name}. Tu clave no puede ver la lista de modelos: escribe el nombre del modelo a mano.`)
+        setKey('')
+        onDone()
+        return
+      }
       setError(err instanceof AiError ? err.message : 'No se pudo comprobar la clave. Vuelve a intentarlo.')
     } finally {
       setChecking(false)

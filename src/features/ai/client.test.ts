@@ -116,6 +116,16 @@ describe('streamText', () => {
     expect(m.body(0).stream).toBe(true)
   })
 
+  it('si la conexión se corta antes del evento final, la respuesta se marca incompleta', async () => {
+    const m = mockFetch(
+      sse([
+        'event: content_block_delta\ndata: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"La respuesta es"}}\n\n',
+      ]),
+    )
+    const result = await streamText(claude, ask, () => {}, { fetchImpl: m.fn })
+    expect(result).toEqual({ text: 'La respuesta es', truncated: true })
+  })
+
   it('ChatGPT (API Responses)', async () => {
     const m = mockFetch(
       sse([
