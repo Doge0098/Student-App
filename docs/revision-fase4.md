@@ -1,5 +1,9 @@
 # Revisión de la fase 4: fallos encontrados y estado
 
+> **Actualización 6 oct 2026:** todos los fallos de esta lista están arreglados (con tests), salvo que la
+> comprobación de «webview endurecida» del test de humo del escritorio sigue pendiente de usar un archivo de
+> precarga real. Las casillas «Pendientes» de abajo son el estado de la primera sesión.
+
 Revisión a fondo hecha por 6 revisores (uno por área) y verificada por otros 6 que intentaron desmentir cada fallo.
 Resultado: 37 fallos confirmados (2 repetidos). Abajo, el estado de cada uno y, al final, el detalle completo
 (descripción, cómo se reproduce, notas del verificador y arreglo propuesto).

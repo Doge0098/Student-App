@@ -163,17 +163,22 @@ desktop/          versión de escritorio con Electron (su propio package.json)
 - `npm run lint` — oxlint
 - `npm run build` — comprobación de tipos y build
 
-## Dónde lo dejamos (5 oct 2026)
+## Dónde lo dejamos (6 oct 2026)
 
-- Fase 4 integrada, probada y publicada. Después se hizo una revisión a fondo: 37 fallos confirmados.
-- Se paró a mitad del arreglo (el usuario se quedó sin uso). Lista completa y estado en
-  **`docs/revision-fase4.md`**: ya arreglados los de organización y casi todos los de concentración;
-  faltan navegador/modos, IA, escritorio y transversal. Lo más urgente: modo Estricto con pestañas
-  abiertas antes del bloque (strict-1), copia de datos dañada (backup-1), «Borrar todo» que no borra
-  la clave de IA y Escape cerrando el aviso «¿descansar o seguir?» (Modal.tsx).
-- Al retomar: arreglar los pendientes por áreas (mismos dueños de archivos que en el documento),
-  con tests; luego `npx tsc -b`, `npm run lint`, `npm test`, `npm run build`, prueba en Chromium y,
-  para escritorio, `npm run desktop:smoke` con xvfb-run.
+- Fase 4 integrada, probada y publicada. La revisión a fondo (37 fallos) está **arreglada** (ver
+  `docs/revision-fase4.md`), salvo un detalle menor: la comprobación de «webview endurecida» del test de
+  humo del escritorio (`desktop/scripts/smoke.mjs`) debería usar un archivo de precarga real.
+- Test de humo del escritorio: 34/34 con `xvfb-run` (necesita `LOCKIN_WEB_DIR` y `LOCKIN_SMOKE_CA` en
+  este entorno; ver `desktop/README.md`).
+- **Peticiones nuevas del usuario, aún sin hacer** (hablar antes de empezar):
+  1. *Iniciar sesión en la IA en vez de pegar una clave.* Ojo: Claude y ChatGPT no ofrecen «iniciar
+     sesión con tu cuenta» a apps de terceros (los planes de suscripción no sirven para la API). Gemini
+     sí permite OAuth de Google, pero hay que crear un proyecto gratuito en Google Cloud. Alternativa
+     realista: enlaces directos a cada chat (se abren en pestaña nueva) además de la clave.
+  2. *YouTube Music y panel de música «como en el móvil»* (interfaz familiar: reproductor grande,
+     biblioteca, mini-reproductor). Limitación: music.youtube.com no se puede incrustar; se reproduce
+     con el reproductor de YouTube y la interfaz la hacemos nosotros. Buscar canciones dentro de
+     LockIn necesitaría una clave de la API de YouTube.
 
 ## Estado y próximos pasos
 

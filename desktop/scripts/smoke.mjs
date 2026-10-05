@@ -79,7 +79,7 @@ const app = await electron.launch({
 try {
   const win = await app.firstWindow()
   await win.waitForLoadState('domcontentloaded')
-  check('La ventana carga la app desde app://lockin/', win.url().startsWith('app://lockin/'), win.url())
+  check('La ventana carga la app desde app://lockin/', win.url().startsWith('app://lockin/'), win.url() + ' · título: ' + (await win.title()))
 
   // Sin guía de bienvenida para poder usar la barra de direcciones.
   await win.evaluate(() => localStorage.setItem('student-app:welcome-done', 'true'))
@@ -147,6 +147,8 @@ try {
   check('La pestaña usa la sesión persist:lockin-web', loaded?.webSession)
   const firstId = loaded?.id
   const runInGuest = (id, code) => app.evaluate(({ webContents }, [gid, js]) => webContents.fromId(gid).executeJavaScript(js, true), [id, code])
+  // Un clic real del estudiante dentro de la página (las webs solo pueden abrir ventanas tras uno).
+  const realClick = (id) => app.evaluate(({ webContents }, gid) => webContents.fromId(gid).sendInputEvent({ type: 'mouseDown', x: 20, y: 20, button: 'left', clickCount: 1 }), id)
   const guestUrl = (id) => app.evaluate(({ webContents }, gid) => webContents.fromId(gid)?.getURL(), id)
 
   const tabTitles = () => win.$$eval('.tab-title', (els) => els.map((e) => e.textContent))
@@ -236,7 +238,14 @@ try {
       window.__blocked = []
       window.__unsubTab = window.lockinDesktop.onOpenTab((u) => window.__tabs.push(u))
     })
+    // Sin ninguna acción del estudiante, una web no puede abrir nada (ni pestañas ni ventanas).
+    await sleep(1500) // que caduque cualquier tecla de las pruebas anteriores
+    await runInGuest(firstId, `window.open('https://es.wikipedia.org/wiki/Spam'); true`)
+    await sleep(800)
+    check('window.open sin clic del estudiante no abre nada', !(await win.evaluate(() => window.__tabs.slice())).some((u) => u.includes('Spam')))
+    await realClick(firstId)
     await runInGuest(firstId, `window.open('https://es.wikipedia.org/wiki/Sol'); true`)
+    await realClick(firstId)
     await runInGuest(firstId, `window.open('https://www.tiktok.com/', '_blank'); true`)
     await sleep(1500)
     const tabs = await win.evaluate(() => window.__tabs.slice())
@@ -245,10 +254,14 @@ try {
     check('…pero no si es una web bloqueada', blockedPopups.some((u) => u.includes('tiktok.com')) && !tabs.some((u) => u.includes('tiktok')), JSON.stringify(blockedPopups))
 
     await win.evaluate(() => window.__unsubTab())
-    await runInGuest(firstId, `window.open('https://example.org/'); true`)
-    await sleep(1500)
-    check('Si la app no escucha onOpenTab, el enlace va al navegador del sistema', !patched || (await opened()).some((u) => u.includes('example.org')), JSON.stringify(await opened()))
+    // Una sola ventana por acción: dos aperturas seguidas con un único clic no valen.
+    await realClick(firstId)
+    await runInGuest(firstId, `window.open('https://es.wikipedia.org/wiki/Uno'); window.open('https://es.wikipedia.org/wiki/Dos'); true`)
+    await sleep(800)
+    const tabsAfterOne = await win.evaluate(() => window.__tabs.slice())
+    check('Un clic = como mucho una ventana nueva', tabsAfterOne.filter((u) => u.includes('/wiki/Uno') || u.includes('/wiki/Dos')).length <= 1)
 
+    await realClick(firstId)
     await runInGuest(firstId, `window.open('https://example.com/', 'acceso', 'popup,width=420,height=520'); true`)
     const popup = await waitFor(async () => {
       const list = await app.evaluate(({ BrowserWindow, session }) =>

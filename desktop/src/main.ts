@@ -6,11 +6,11 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, protocol, type IpcMainEvent, type MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, webContents, nativeTheme, protocol, type IpcMainEvent, type MenuItemConstructorOptions } from 'electron'
 import { guardShell, guardWebContents, openExternalSafe } from './guards'
-import { APP_ENTRY, APP_HOST, APP_SCHEME, isAppUrl, mimeTypeFor, resolveAppFile } from './policy'
+import { APP_ENTRY, APP_HOST, APP_SCHEME, findBlockedHost, isAppUrl, mimeTypeFor, resolveAppFile } from './policy'
 import { configureSessions, webSession } from './sessions'
-import { CHANNELS, getShell, setBlockedHosts, setShell } from './state'
+import { CHANNELS, getBlockedHosts, getShell, notifyBlocked, setBlockedHosts, setShell } from './state'
 
 // app:// se comporta como una web segura (localStorage, módulos JS, fetch…).
 protocol.registerSchemesAsPrivileged([
@@ -68,7 +68,18 @@ function registerIpc(): void {
     if (fromShell(event)) openExternalSafe(url)
   })
   ipcMain.on(CHANNELS.setBlockedSites, (event, hosts: unknown) => {
-    if (fromShell(event)) setBlockedHosts(hosts)
+    if (!fromShell(event)) return
+    setBlockedHosts(hosts)
+    // Las pestañas que ya mostraban una web ahora bloqueada se vacían (una web que cambia de página
+    // sin recargar no pasa por los filtros de navegación).
+    for (const contents of webContents.getAllWebContents()) {
+      if (contents.session !== webSession() || contents.isDestroyed()) continue
+      const url = contents.getURL()
+      if (url && findBlockedHost(url, getBlockedHosts())) {
+        void contents.loadURL('about:blank')
+        notifyBlocked(url)
+      }
+    }
   })
 }
 

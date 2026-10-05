@@ -12,6 +12,8 @@ const IFRAME_SANDBOX =
 
 /** Sesión de las webs en escritorio (cookies e inicios de sesión de las pestañas). Ver desktop/src/policy.ts. */
 const WEB_PARTITION = 'persist:lockin-web'
+/** Tiempo que una página debe quedarse quieta para avisar de su nueva dirección (cambios sin recargar). */
+const IN_PAGE_DELAY_MS = 2000
 
 export interface BrowserFrameProps {
   src: string
@@ -21,7 +23,7 @@ export interface BrowserFrameProps {
    * Solo en escritorio: la página ha cambiado de dirección o de título (el estudiante ha
    * pulsado un enlace dentro). En la web los navegadores no dejan saberlo.
    */
-  onNavigate?: (url: string, title: string) => void
+  onNavigate?: (url: string, title: string, info?: { inPage: boolean }) => void
 }
 
 /** Página web mostrada dentro de LockIn: iframe en la web; en escritorio, una vista completa. */
@@ -77,7 +79,11 @@ function DesktopFrame({ src, title, hidden, onNavigate }: BrowserFrameProps) {
     let pending = false
     const report = () => navigateRef.current?.(url, pageTitle)
 
+    // Las páginas que cambian de dirección sin recargar (mapas, scroll infinito) se avisan solo cuando
+    // se calman: así una web no puede llenar el historial con cientos de direcciones.
+    let inPageTimer: number | undefined
     const onNavigated = (event: Event) => {
+      window.clearTimeout(inPageTimer)
       url = (event as WebviewNavigateEvent).url
       pageTitle = ''
       pending = true
@@ -98,7 +104,8 @@ function DesktopFrame({ src, title, hidden, onNavigate }: BrowserFrameProps) {
       const e = event as WebviewInPageNavigateEvent
       if (!e.isMainFrame || e.url === url) return
       url = e.url
-      report()
+      window.clearTimeout(inPageTimer)
+      inPageTimer = window.setTimeout(() => navigateRef.current?.(url, pageTitle, { inPage: true }), IN_PAGE_DELAY_MS)
     }
 
     view.addEventListener('did-navigate', onNavigated)
@@ -109,6 +116,7 @@ function DesktopFrame({ src, title, hidden, onNavigate }: BrowserFrameProps) {
     viewRef.current = view
 
     return () => {
+      window.clearTimeout(inPageTimer)
       view.removeEventListener('did-navigate', onNavigated)
       view.removeEventListener('page-title-updated', onTitle)
       view.removeEventListener('dom-ready', onReady)

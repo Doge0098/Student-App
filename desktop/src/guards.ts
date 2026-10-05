@@ -3,6 +3,7 @@
  * Sigue la lista de seguridad de Electron: nada de Node en las webs, navegación controlada,
  * ventanas nuevas controladas y ninguna web puede crear <webview>.
  */
+import { createGestureGate } from './gesture'
 import {
   app,
   BrowserWindow,
@@ -82,8 +83,19 @@ export function guardWebContents(contents: WebContents): void {
   // Redirecciones (p. ej. un acortador que lleva a una web bloqueada).
   contents.on('will-redirect', (event) => checkNavigation(event, event.url, event.isMainFrame))
 
+  // Una web solo puede abrir ventanas justo después de un clic o una tecla del estudiante.
+  const gesture = createGestureGate()
+  contents.on('before-input-event', (_event, input) => {
+    if (input.type === 'keyDown' || input.type === 'rawKeyDown') gesture.noteInput()
+  })
+  contents.on('input-event', (_event, input) => {
+    if (input.type === 'mouseDown' || input.type === 'touchStart') gesture.noteInput()
+  })
+
   contents.setWindowOpenHandler(({ url, disposition }) => {
-    switch (decideGuestPopup(url, disposition, getBlockedHosts())) {
+    const decision = decideGuestPopup(url, disposition, getBlockedHosts())
+    if ((decision === 'tab' || decision === 'popup') && !gesture.consume()) return { action: 'deny' }
+    switch (decision) {
       case 'blocked':
         notifyBlocked(url)
         return { action: 'deny' }

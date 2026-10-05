@@ -317,7 +317,7 @@ export function StudyBrowser() {
    */
   // Una página no puede llenar el historial: como mucho una entrada nueva por pestaña cada pocos segundos.
   const lastRecorded = useRef(new Map<string, number>())
-  const handleNavigate = (tabId: string, rawUrl: string, rawTitle: string) => {
+  const handleNavigate = (tabId: string, rawUrl: string, rawTitle: string, _info?: { inPage: boolean }) => {
     const tab = tabs.find((t) => t.id === tabId)
     const nav = tab ? navigateTab(tab, rawUrl, rawTitle) : null
     if (!tab || !nav) return
@@ -347,7 +347,7 @@ export function StudyBrowser() {
   useEffect(() => {
     navigateRef.current = handleNavigate
   })
-  const onNavigate = useCallback((tabId: string, url: string, title: string) => navigateRef.current(tabId, url, title), [])
+  const onNavigate = useCallback((tabId: string, url: string, title: string, info?: { inPage: boolean }) => navigateRef.current(tabId, url, title, info), [])
 
   const updateItem = (id: string, patch: Partial<HistoryItem>) =>
     setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)))
@@ -486,14 +486,14 @@ export function StudyBrowser() {
 interface TabFrameProps {
   tab: BrowserTab
   hidden: boolean
-  onNavigate: (tabId: string, url: string, title: string) => void
+  onNavigate: (tabId: string, url: string, title: string, info?: { inPage: boolean }) => void
 }
 
 /** Página de una pestaña. Si luego navega dentro (escritorio), no se recarga: la dirección inicial se queda. */
 function TabFrame({ tab, hidden, onNavigate }: TabFrameProps) {
   const [src] = useState(tab.src)
   const { id } = tab
-  const handleNavigate = useCallback((url: string, title: string) => onNavigate(id, url, title), [onNavigate, id])
+  const handleNavigate = useCallback((url: string, title: string, info?: { inPage: boolean }) => onNavigate(id, url, title, info), [onNavigate, id])
   return <BrowserFrame src={src} title={tab.title} hidden={hidden} onNavigate={handleNavigate} />
 }
 

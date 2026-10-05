@@ -5,6 +5,7 @@
  */
 import { app, BrowserWindow, dialog, session, type MediaAccessPermissionRequest, type Session, type WebContents } from 'electron'
 import { cleanUserAgent, decidePermission, findBlockedHost, originOf, WEB_PARTITION, withAppReferer, YOUTUBE_EMBED_URLS } from './policy'
+import { createMediaGrants, normalizeMediaTypes, type MediaType } from './mediaGrants'
 import { getBlockedHosts, notifyBlocked } from './state'
 
 export function webSession(): Session {
@@ -20,6 +21,10 @@ export function configureSessions(): void {
   app.userAgentFallback = chromeLikeUserAgent(app.userAgentFallback)
   configure(session.defaultSession, 'shell')
   configure(webSession(), 'web')
+
+  // Las pestañas no son un explorador de archivos: file:// queda bloqueado en esta sesión,
+  // empiece la navegación como empiece (también si la lanza la propia app con loadURL).
+  webSession().protocol.handle('file', () => new Response('Bloqueado', { status: 403 }))
 
   // Modo Estricto, última barrera: cualquier carga de página principal en una pestaña (también
   // «Atrás», recargar o una redirección) hacia un dominio bloqueado se cancela.
@@ -40,14 +45,17 @@ function configure(ses: Session, context: 'shell' | 'web'): void {
     const media = details as MediaAccessPermissionRequest
     const origin = originOf(media.securityOrigin || details.requestingUrl)
     const decision = decidePermission(permission, context, origin)
-    if (decision === 'ask') void askForMedia(contents, origin, media.mediaTypes ?? []).then(callback)
+    if (decision === 'ask') void askForMedia(contents, origin, normalizeMediaTypes(media.mediaTypes)).then(callback)
     else callback(decision === 'allow')
   })
 
-  ses.setPermissionCheckHandler((_contents, permission, requestingOrigin) => {
+  ses.setPermissionCheckHandler((_contents, permission, requestingOrigin, details) => {
     const origin = originOf(requestingOrigin)
     const decision = decidePermission(permission, context, origin)
-    return decision === 'allow' || (decision === 'ask' && mediaGrants.has(origin))
+    if (decision !== 'ask') return decision === 'allow'
+    // Solo del tipo que se pregunta: el permiso del micrófono no vale para la cámara.
+    const type = (details as { mediaType?: string }).mediaType
+    return (type === 'audio' || type === 'video') && mediaGrants.isGranted(origin, type)
   })
 
   // Sin esto el reproductor de YouTube (panel de Música, vídeos en pestañas) muestra «Error 153».
@@ -69,21 +77,21 @@ function configure(ses: Session, context: 'shell' | 'web'): void {
 /* Cámara y micrófono (Meet, Teams…): se pregunta al estudiante        */
 /* ------------------------------------------------------------------ */
 
-/** Webs a las que el estudiante ha dejado usar cámara/micrófono mientras LockIn está abierto. */
-const mediaGrants = new Set<string>()
+/** Lo que el estudiante ha dejado (o no) a cada web, por cámara y micrófono por separado. */
+const mediaGrants = createMediaGrants()
 const pendingAsks = new Map<string, Promise<boolean>>()
 
-function askForMedia(contents: WebContents, origin: string, types: readonly string[]): Promise<boolean> {
-  if (mediaGrants.has(origin)) return Promise.resolve(true)
-  const pending = pendingAsks.get(origin)
+function askForMedia(contents: WebContents, origin: string, types: readonly MediaType[]): Promise<boolean> {
+  const verdict = mediaGrants.check(origin, types)
+  if (verdict.action === 'allow') return Promise.resolve(true)
+  if (verdict.action === 'deny') return Promise.resolve(false)
+
+  const missing = verdict.missing
+  const askKey = `${origin}|${missing.join('+')}`
+  const pending = pendingAsks.get(askKey)
   if (pending) return pending
 
-  const what =
-    types.includes('video') && types.includes('audio')
-      ? 'la cámara y el micrófono'
-      : types.includes('video')
-        ? 'la cámara'
-        : 'el micrófono'
+  const what = missing.length === 2 ? 'la cámara y el micrófono' : missing[0] === 'video' ? 'la cámara' : 'el micrófono'
   const site = origin.replace(/^https?:\/\//, '')
   const owner = BrowserWindow.fromWebContents(contents.hostWebContents ?? contents)
   const options = {
@@ -99,11 +107,12 @@ function askForMedia(contents: WebContents, origin: string, types: readonly stri
   const ask = (owner ? dialog.showMessageBox(owner, options) : dialog.showMessageBox(options))
     .then(({ response }) => {
       const granted = response === 0
-      if (granted) mediaGrants.add(origin)
+      if (granted) mediaGrants.grant(origin, missing)
+      else mediaGrants.deny(origin, missing)
       return granted
     })
     .catch(() => false)
-    .finally(() => pendingAsks.delete(origin))
-  pendingAsks.set(origin, ask)
+    .finally(() => pendingAsks.delete(askKey))
+  pendingAsks.set(askKey, ask)
   return ask
 }
