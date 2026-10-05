@@ -34,7 +34,7 @@ export function checkDueReminders(toast: (message: string) => void): void {
   const message = reminderMessage(reminders)
   toast(`📅 ${message.toast}`)
   // Solo si ya se dio permiso (p. ej. para el temporizador): aquí no se pide.
-  notify(message.title, message.body)
+  notify(message.title, message.body, 'lockin-reminder')
 }
 
 /**

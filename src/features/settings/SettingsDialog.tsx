@@ -5,11 +5,13 @@ import { COLORS, COLOR_IDS, type ColorId } from '../../lib/colors'
 import { platform } from '../../platform'
 import { useInstallPrompt } from '../../platform/install'
 import { useAccounts } from '../accounts/AccountsContext'
+import { DataSettings } from '../data/DataSettings'
+import { StudySettings } from '../profile/StudySettings'
 import { SERVICES, type ServiceId } from '../accounts/services'
 import { PANEL_LABELS, accentStyle, type PanelId, type ThemeMode } from './appearance'
 import { useAppearance } from './AppearanceContext'
 
-export type SettingsTab = 'appearance' | 'accounts' | 'install'
+export type SettingsTab = 'study' | 'appearance' | 'accounts' | 'data' | 'install'
 
 interface SettingsDialogProps {
   open: boolean
@@ -20,9 +22,11 @@ interface SettingsDialogProps {
 }
 
 const TABS: { id: SettingsTab; label: string }[] = [
+  { id: 'study', label: 'Estudio' },
   { id: 'appearance', label: 'Personalizar' },
   { id: 'accounts', label: 'Cuentas' },
-  { id: 'install', label: 'Instalar' },
+  { id: 'data', label: 'Datos' },
+  { id: 'install', label: 'App' },
 ]
 
 const THEMES: { id: ThemeMode; label: string; icon: ReactNode }[] = [
@@ -224,9 +228,17 @@ function InstallSettings({ onShowGuide }: { onShowGuide: () => void }) {
       </div>
       <div className="setting">
         <span className="setting-label">Versión de escritorio</span>
-        <p className="hint">
-          Está en preparación: un programa para Windows, Mac y Linux donde todas las webs se abrirán dentro de la app.
-        </p>
+        {platform.isDesktop ? (
+          <p className="hint hint-box">
+            <CircleCheck size={14} aria-hidden="true" />
+            <span>Estás usando LockIn para ordenador{platform.desktopVersion ? ` (versión ${platform.desktopVersion})` : ''}.</span>
+          </p>
+        ) : (
+          <p className="hint">
+            Un programa para Windows, Mac y Linux donde todas las webs se abren dentro de LockIn y el modo Estricto
+            bloquea también los enlaces. Pronto se podrá descargar desde aquí.
+          </p>
+        )}
       </div>
       <button type="button" className="btn btn-link" onClick={onShowGuide}>
         Ver otra vez la guía de bienvenida
@@ -252,8 +264,10 @@ export function SettingsDialog({ open, tab, onTabChange, onClose, onShowGuide }:
           </button>
         ))}
       </div>
+      {tab === 'study' && <StudySettings />}
       {tab === 'appearance' && <AppearanceSettings />}
       {tab === 'accounts' && <AccountsSettings />}
+      {tab === 'data' && <DataSettings />}
       {tab === 'install' && <InstallSettings onShowGuide={onShowGuide} />}
     </Modal>
   )

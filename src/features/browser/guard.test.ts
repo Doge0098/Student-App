@@ -15,7 +15,8 @@ describe('timerFlags', () => {
   it('solo cuenta lo que está corriendo', () => {
     expect(timerFlags({ phase: 'focus', status: 'running' })).toEqual(focus)
     expect(timerFlags({ phase: 'break', status: 'running' })).toEqual(rest)
-    expect(timerFlags({ phase: 'focus', status: 'paused' })).toEqual(idle)
+    // Pausar no levanta el bloqueo: si no, bastaría con pausar para abrir la distracción.
+    expect(timerFlags({ phase: 'focus', status: 'paused' })).toEqual(focus)
     expect(timerFlags({ phase: 'focus', status: 'finished' })).toEqual(idle)
     expect(timerFlags({ phase: 'idle', status: 'paused' })).toEqual(idle)
   })

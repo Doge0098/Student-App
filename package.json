@@ -1,5 +1,5 @@
 {
-  "name": "student-app",
+  "name": "lockin",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -9,7 +9,11 @@
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "desktop": "npm run build && npm --prefix desktop start",
+    "desktop:install": "npm --prefix desktop install",
+    "desktop:dist": "npm run build && npm --prefix desktop run dist",
+    "desktop:smoke": "npm run build && npm --prefix desktop run smoke"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",

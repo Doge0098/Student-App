@@ -1,4 +1,4 @@
-import { ArrowRight, Compass, ExternalLink, House, Info, LayoutGrid, Lock, RotateCcw, TriangleAlert, X } from 'lucide-react'
+import { ArrowRight, Compass, ExternalLink, House, Info, LayoutGrid, Layers, Lock, NotebookPen, RotateCcw, Sparkles, TriangleAlert, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Modal } from '../../components/Modal'
 import { Panel } from '../../components/Panel'
@@ -28,6 +28,9 @@ import { LoginButton } from '../accounts/LoginButton'
 import { useMusic } from '../music/MusicContext'
 import { useProfile } from '../profile/profile'
 import { useRemainingMs, useTimer } from '../timer/TimerContext'
+import { AiAssistant } from '../ai/AiAssistant'
+import { FlashcardsView } from '../flashcards/FlashcardsView'
+import { NotesView } from '../notes/NotesView'
 import { AppStore } from '../store/AppStore'
 import { DEFAULT_MY_APPS, type StoreApp } from '../store/catalog'
 import { BrowserFrame } from './BrowserFrame'
@@ -40,6 +43,19 @@ import type { BrowserTab, HistoryItem } from './types'
 
 const HOME = 'home'
 const STORE = 'store'
+const NOTES = 'notes'
+const CARDS = 'cards'
+const AI = 'ai'
+
+/** Pestañas fijas del espacio de estudio (las webs abiertas van después). */
+const FIXED_TABS = [
+  { id: HOME, label: 'Inicio', icon: House },
+  { id: STORE, label: 'Apps', icon: LayoutGrid },
+  { id: NOTES, label: 'Notas', icon: NotebookPen },
+  { id: CARDS, label: 'Repasar', icon: Layers },
+  { id: AI, label: 'IA', icon: Sparkles },
+] as const
+const FIXED_IDS: string[] = FIXED_TABS.map((t) => t.id)
 const MAX_TABS = 6
 const MAX_HISTORY = 150
 
@@ -86,7 +102,8 @@ export function StudyBrowser() {
   const [loaded, setLoaded] = useState<Set<string>>(() => new Set([activeId]))
 
   const activeTab = tabs.find((t) => t.id === activeId) ?? null
-  const showStore = activeId === STORE
+  // Vista fija que se ve ahora (Inicio si la pestaña guardada ya no existe).
+  const fixedView = activeTab ? null : FIXED_IDS.includes(activeId) ? activeId : HOME
 
   // Modo de estudio + temporizador: qué se abre, qué pide aviso y qué queda bloqueado.
   const guard: GuardContext = { mode: profile.mode, extraDistractions: profile.extraDistractions, ...timerFlags(timer) }
@@ -205,6 +222,14 @@ export function StudyBrowser() {
     launch(url, shouldRecord && verdict.kind !== 'distraction')
   }
 
+  // Escritorio: los enlaces que una web abre «en pestaña nueva» se abren como pestañas de LockIn,
+  // pasando por los mismos avisos de distracciones y el mismo historial que la barra de direcciones.
+  const openRef = useRef<(raw: string) => void>(() => {})
+  useEffect(() => {
+    openRef.current = (raw) => open(raw)
+  })
+  useEffect(() => platform.onOpenTab((url) => openRef.current(url)), [])
+
   /** «Abrir todo» de una asignatura: dentro las que se dejan; las de fuera no se abren todas de golpe. */
   const openAll = (items: HistoryItem[], subject: SubjectId) => {
     const plan = planOpenAll(items, tabs, {
@@ -291,7 +316,7 @@ export function StudyBrowser() {
     setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)))
 
   return (
-    <Panel title="Navegador" icon={<Compass size={18} />} panel="browser" className="browser-panel">
+    <Panel title="Estudio" icon={<Compass size={18} />} panel="browser" className="browser-panel">
       <form className="address-bar" onSubmit={submit} role="search">
         <input
           type="text"
@@ -320,26 +345,20 @@ export function StudyBrowser() {
       </form>
 
       <div className="tab-strip" role="tablist" aria-label="Pestañas">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={!activeTab && !showStore}
-          className={`tab ${!activeTab && !showStore ? 'is-active' : ''}`}
-          onClick={() => activate(HOME)}
-        >
-          <House size={15} aria-hidden="true" />
-          <span className="tab-title">Inicio</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={showStore}
-          className={`tab ${showStore ? 'is-active' : ''}`}
-          onClick={() => activate(STORE)}
-        >
-          <LayoutGrid size={15} aria-hidden="true" />
-          <span className="tab-title">Apps</span>
-        </button>
+        {FIXED_TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={fixedView === id}
+            className={`tab tab-fixed ${fixedView === id ? 'is-active' : ''}`}
+            title={label}
+            onClick={() => activate(id)}
+          >
+            <Icon size={15} aria-hidden="true" />
+            <span className="tab-title">{label}</span>
+          </button>
+        ))}
         {tabs.map((tab) => (
           <div key={tab.id} className={`tab ${tab.id === activeTab?.id ? 'is-active' : ''}`}>
             <button
@@ -390,7 +409,7 @@ export function StudyBrowser() {
       )}
 
       <div className="browser-viewport">
-        {!activeTab && !showStore && (
+        {fixedView === HOME && (
           <BrowserHome
             history={history}
             myApps={myApps}
@@ -402,9 +421,12 @@ export function StudyBrowser() {
             onRemove={(id) => setHistory((prev) => prev.filter((h) => h.id !== id))}
           />
         )}
-        {showStore && (
+        {fixedView === STORE && (
           <AppStore myApps={myApps} onToggleMyApp={toggleMyApp} onOpenApp={openApp} onDownloadApp={downloadApp} />
         )}
+        {fixedView === NOTES && <NotesView />}
+        {fixedView === CARDS && <FlashcardsView />}
+        {fixedView === AI && <AiAssistant />}
         {tabs.map((tab) =>
           loaded.has(tab.id) ? (
             <TabFrame key={`${tab.id}-${tab.reloads}`} tab={tab} hidden={tab.id !== activeTab?.id} onNavigate={onNavigate} />

@@ -31,7 +31,7 @@ export function TopBar() {
   const { resolvedTheme, setTheme } = useAppearance()
   const { canInstall, install } = useInstallPrompt()
   const [settings, setSettings] = useState<SettingsTab | null>(null)
-  const [lastTab, setLastTab] = useState<SettingsTab>('appearance')
+  const [lastTab, setLastTab] = useState<SettingsTab>('study')
   const [welcomeDone, setWelcomeDone] = usePersistentState('welcome-done', false)
   const dark = resolvedTheme === 'dark'
 

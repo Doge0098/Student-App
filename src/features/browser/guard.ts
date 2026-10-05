@@ -6,7 +6,7 @@ export interface GuardContext {
   mode: ModeId
   /** Lista propia del estudiante («Mis distracciones»). */
   extraDistractions: readonly string[]
-  /** Bloque de concentración corriendo (no en pausa ni esperando respuesta). */
+  /** Dentro de un bloque de concentración (corriendo o en pausa; no esperando respuesta). */
   focusRunning: boolean
   /** Descanso corriendo. */
   onBreak: boolean
@@ -22,10 +22,14 @@ export interface GuardVerdict {
   own: boolean
 }
 
-/** Saca del temporizador si se está concentrando o descansando ahora mismo. */
+/**
+ * Saca del temporizador si se está concentrando o descansando ahora mismo.
+ * Un bloque en pausa sigue contando como concentración: si no, en modo Estricto bastaría con
+ * pausar, abrir la distracción y seguir.
+ */
 export function timerFlags(timer: { phase: string; status: string }): Pick<GuardContext, 'focusRunning' | 'onBreak'> {
-  const running = timer.status === 'running'
-  return { focusRunning: running && timer.phase === 'focus', onBreak: running && timer.phase === 'break' }
+  const inBlock = timer.status === 'running' || timer.status === 'paused'
+  return { focusRunning: inBlock && timer.phase === 'focus', onBreak: timer.status === 'running' && timer.phase === 'break' }
 }
 
 /** Decide qué hacer al abrir una web según el modo de estudio y el momento del temporizador. */

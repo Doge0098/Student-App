@@ -1,16 +1,27 @@
 # LockIn
 
 Todo lo que un estudiante necesita para estudiar, **en un solo sitio**, para no ir saltando de web en web
-ni acabar en el móvil.
+ni acabar en el móvil. Para todos los cursos, de Primaria a la universidad.
 
-- **Concentración**: eliges cuánto tiempo (mínimo 30 min). Al acabar te pregunta *«¿Quieres descansar o seguir?»*.
-- **Tareas**: las apuntas y las tachas. Cada una se etiqueta sola con su asignatura.
-- **Navegador**: busca o pega un enlace. Lo que abres se guarda clasificado por asignatura para volver con un clic,
-  y te avisa si intentas abrir distracciones (Instagram, TikTok, Shorts…).
-- **Apps**: tienda con apps de estudio (Google, IA, VS Code, máquinas virtuales, ciencias, apuntes, idiomas…).
-  Las apps web se abren desde aquí; las descargables te llevan a su página oficial.
-- **Música**: YouTube, YouTube Music y Spotify sin salir de la página.
-- **Ajustes**: modo claro/oscuro, colores para cada parte, inicio de sesión en Google y Spotify, e instalación.
+**Úsala ya:** https://doge0098.github.io/Student-App/
+
+- **Concentración**: eliges cuánto tiempo (mínimo 30 min) y en qué tarea. Al acabar te pregunta
+  *«¿Quieres descansar o seguir?»*. Modo foco, tu progreso con racha de días y **sala con amigos**
+  (un enlace y todos estudiáis con el mismo reloj).
+- **Tareas y exámenes**: con fechas, cuenta atrás y avisos. Cada tarea se etiqueta sola con su asignatura.
+- **Estudio**: busca o pega un enlace; lo que abres se guarda clasificado por asignatura. Además:
+  - **Apps**: tienda de apps de estudio (Google, IA, VS Code, máquinas virtuales, mensajería…) con
+    recomendaciones según tu curso.
+  - **Notas** por asignatura y **Repasar** con tarjetas de memoria.
+  - **IA**: resuelve dudas, resume, hace tests y crea tarjetas. Usa tu propia clave de Claude, ChatGPT o
+    Gemini (Gemini tiene plan gratis); la clave se queda en tu navegador.
+- **Modos de estudio** Suave, Normal y Estricto: desde solo avisar hasta bloquear las distracciones
+  (redes, reels, juegos y las webs que tú añadas) mientras te concentras.
+- **Música**: YouTube, YouTube Music, Spotify y sonidos ambiente (lluvia, olas, ruido…) que se pausan solos en los descansos.
+- **Ajustes**: curso, modo, colores, cuentas de Google y Spotify, copia de tus datos e instalación.
+
+Tus datos se guardan solo en tu navegador: no hay cuentas ni servidor. Para cambiar de ordenador,
+descarga una copia en Ajustes → Datos.
 
 ## Usarla
 
@@ -28,6 +39,11 @@ Abre la dirección que aparece (normalmente http://localhost:5173).
 Con la versión publicada (`npm run build` genera la carpeta `dist/`), en Chrome o Edge aparece el botón
 **Instalar** (o el icono de instalar en la barra de direcciones). En iPhone/iPad: *Compartir → Añadir a pantalla de inicio*.
 Funciona también sin internet.
+
+### Versión de escritorio
+
+Programa para Windows, Mac y Linux (Electron) donde todas las webs se abren dentro de LockIn.
+Ver [`desktop/README.md`](desktop/README.md). Para probarla: `npm run desktop:install` y luego `npm run desktop`.
 
 ## Para desarrollar
 

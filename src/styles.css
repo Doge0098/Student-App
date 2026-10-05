@@ -1008,6 +1008,18 @@ div.tab {
   background: var(--surface-3);
 }
 
+/* Con poco ancho, las pestañas fijas (Inicio, Apps, Notas…) muestran solo su icono, salvo la activa. */
+@media (max-width: 1100px) {
+  .tab-fixed:not(.is-active) .tab-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 .tab-tools {
   margin-left: auto;
   display: flex;

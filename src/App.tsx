@@ -1,6 +1,7 @@
 import { ToastProvider } from './components/Toast'
 import { AccountsProvider } from './features/accounts/AccountsContext'
 import { StudyBrowser } from './features/browser/StudyBrowser'
+import { FOCUS_MODE_CLASS, useFocusMode } from './features/focus/focusMode'
 import { MusicProvider } from './features/music/MusicContext'
 import { MusicPanel } from './features/music/MusicPanel'
 import { AppearanceProvider } from './features/settings/AppearanceContext'
@@ -11,6 +12,7 @@ import { TimerPrompt } from './features/timer/TimerPrompt'
 import { TopBar } from './TopBar'
 
 export default function App() {
+  const focusMode = useFocusMode()
   return (
     <AppearanceProvider>
       <ToastProvider>
@@ -19,7 +21,7 @@ export default function App() {
             <MusicProvider>
               <div className="app">
                 <TopBar />
-                <main className="layout">
+                <main className={focusMode.on ? `layout ${FOCUS_MODE_CLASS}` : 'layout'}>
                   <div className="col col-left">
                     <FocusTimer />
                     <TaskList />

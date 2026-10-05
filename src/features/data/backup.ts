@@ -6,10 +6,11 @@
 export const PREFIX = 'student-app:'
 
 /**
- * No se copian: el temporizador en marcha (no tiene sentido en otro ordenador) ni las claves de IA
- * (son secretas: mejor volver a pegarlas a mano).
+ * No se copian: lo que solo tiene sentido en este ordenador y en este momento (temporizador en marcha,
+ * sala con amigos, modo foco, avisos ya mostrados hoy) ni las claves de IA (son secretas: mejor
+ * volver a pegarlas a mano).
  */
-export const EXCLUDED_KEYS = ['timer', 'ai-settings']
+export const EXCLUDED_KEYS = ['timer', 'room', 'focus-mode', 'task-reminders', 'ai-settings']
 
 export interface Backup {
   app: 'LockIn'
