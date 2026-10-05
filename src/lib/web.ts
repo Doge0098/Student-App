@@ -114,6 +114,7 @@ const CATEGORY_RULES: { category: CategoryId; hosts: string[] }[] = [
       'perplexity.ai', 'copilot.microsoft.com', 'chat.deepseek.com',
     ],
   },
+  { category: 'programacion', hosts: ['colab.research.google.com'] },
   {
     category: 'google',
     hosts: [
@@ -136,7 +137,8 @@ const CATEGORY_RULES: { category: CategoryId; hosts: string[] }[] = [
     category: 'programacion',
     hosts: [
       'github.com', 'stackoverflow.com', 'developer.mozilla.org', 'w3schools.com', 'replit.com',
-      'codepen.io', 'geeksforgeeks.org', 'freecodecamp.org', 'python.org', 'scratch.mit.edu',
+      'codepen.io', 'geeksforgeeks.org', 'freecodecamp.org', 'python.org', 'scratch.mit.edu', 'vscode.dev',
+      'webvm.io', 'bellard.org', 'copy.sh',
     ],
   },
   {
@@ -147,7 +149,8 @@ const CATEGORY_RULES: { category: CategoryId; hosts: string[] }[] = [
     category: 'herramienta',
     hosts: [
       'desmos.com', 'geogebra.org', 'wolframalpha.com', 'symbolab.com', 'mathway.com', 'phet.colorado.edu',
-      'canva.com', 'overleaf.com', 'ptable.com', 'photomath.com',
+      'canva.com', 'overleaf.com', 'ptable.com', 'photomath.com', 'excalidraw.com', 'diagrams.net',
+      'photopea.com', 'tinkercad.com', 'notion.so', 'notion.com', 'ankiweb.net',
     ],
   },
   {
@@ -307,7 +310,7 @@ export interface EmbedInfo {
 
 const EMBEDDABLE_HOSTS = [
   'wikipedia.org', 'wiktionary.org', 'wikibooks.org', 'wikisource.org', 'wikiversity.org', 'wikimedia.org',
-  'desmos.com', 'geogebra.org', 'phet.colorado.edu',
+  'desmos.com', 'geogebra.org', 'phet.colorado.edu', 'excalidraw.com', 'photopea.com', 'bellard.org', 'copy.sh',
 ]
 
 /**

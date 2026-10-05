@@ -1,4 +1,4 @@
-import { Headphones, Info, Pause, Play, Save, SkipBack, SkipForward, Volume2, X } from 'lucide-react'
+import { Headphones, Pause, Play, Save, SkipBack, SkipForward, Volume2, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Panel } from '../../components/Panel'
 import { useToast } from '../../components/Toast'
@@ -35,21 +35,18 @@ export function MusicPanel() {
     setSaving(false)
     if (ok) {
       setLink('')
-      toast('Guardado en tus listas.')
+      toast('Guardado en tu lista.')
     }
   }
 
   return (
     <Panel title="Música" icon={<Headphones size={18} />} panel="music" className="music-panel">
-      {source ? (
+      {source && (
         <>
           <div className="now-playing">
-            <div className="now-playing-text">
-              <span className="eyebrow">{source.provider === 'spotify' ? 'Spotify' : 'YouTube'}</span>
-              <span className="now-playing-title" title={music.title}>
-                {music.title || 'Cargando…'}
-              </span>
-            </div>
+            <span className="now-playing-title" title={music.title}>
+              {music.title || 'Cargando…'}
+            </span>
             <div className="player-controls">
               {music.canSkip && (
                 <button type="button" className="icon-btn" aria-label="Anterior" onClick={music.prev}>
@@ -88,39 +85,18 @@ export function MusicPanel() {
           {source.provider === 'youtube' ? (
             <YouTubePlayer key={currentUrl} videoId={source.videoId} listId={source.listId} />
           ) : (
-            <SpotifyPlayer key={`${currentUrl}-${accounts.versions.spotify}`} kind={source.kind} id={source.id} />
+            <>
+              <SpotifyPlayer key={`${currentUrl}-${accounts.versions.spotify}`} kind={source.kind} id={source.id} />
+              <div className="inline-note">
+                <span>Sin cuenta solo suenan 30 s.</span>
+                <LoginButton service="spotify" />
+              </div>
+            </>
           )}
         </>
-      ) : (
-        <p className="empty">Elige una lista o pega un enlace para poner música mientras estudias.</p>
       )}
 
-      <form className="input-row" onSubmit={playLink}>
-        <input
-          type="text"
-          inputMode="url"
-          value={link}
-          onChange={(e) => setLink(e.target.value)}
-          placeholder="Pega un enlace de música"
-          aria-label="Enlace de música"
-        />
-        <button type="submit" className="btn btn-primary btn-icon" aria-label="Reproducir enlace" disabled={!valid}>
-          <Play size={18} />
-        </button>
-        <button
-          type="button"
-          className="btn btn-icon"
-          aria-label="Guardar en mis listas"
-          title="Guardar en mis listas"
-          disabled={!valid || saving}
-          onClick={saveLink}
-        >
-          <Save size={18} />
-        </button>
-      </form>
-
-      <h3 className="section-title">Mis listas</h3>
-      <ul className="station-list">
+      <ul className="station-list" aria-label="Mi lista de música">
         {music.stations.map((station) => {
           const active = station.url === currentUrl
           return (
@@ -146,16 +122,29 @@ export function MusicPanel() {
         })}
       </ul>
 
-      <div className="hint hint-box hint-stack">
-        <p className="hint-row">
-          <Info size={14} aria-hidden="true" />
-          <span>
-            Sin cuenta de Spotify solo suenan 30 s de cada canción. Los enlaces de YouTube Music suenan con el
-            reproductor de YouTube.
-          </span>
-        </p>
-        <LoginButton service="spotify" />
-      </div>
+      <form className="input-row" onSubmit={playLink}>
+        <input
+          type="text"
+          inputMode="url"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          placeholder="Pegar enlace…"
+          aria-label="Enlace de YouTube, YouTube Music o Spotify"
+        />
+        <button type="submit" className="btn btn-primary btn-icon" aria-label="Reproducir enlace" disabled={!valid}>
+          <Play size={18} />
+        </button>
+        <button
+          type="button"
+          className="btn btn-icon"
+          aria-label="Guardar en mi lista"
+          title="Guardar en mi lista"
+          disabled={!valid || saving}
+          onClick={saveLink}
+        >
+          <Save size={18} />
+        </button>
+      </form>
     </Panel>
   )
 }

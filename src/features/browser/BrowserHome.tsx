@@ -1,22 +1,24 @@
-import { Check, History, Info, LayoutGrid, Pencil, Pin, PinOff, Plus, Sparkles, X } from 'lucide-react'
+import { Check, Pencil, Pin, PinOff, Plus, X } from 'lucide-react'
 import { useMemo, useState, type CSSProperties } from 'react'
 import { SubjectPicker } from '../../components/SubjectPicker'
 import { SUBJECTS, type SubjectId } from '../../lib/subjects'
 import { timeAgo } from '../../lib/time'
-import { CATEGORIES, siteName } from '../../lib/web'
-import { LoginButton } from '../accounts/LoginButton'
-import { GOOGLE_APPS, GOOGLE_CREATE, STUDY_TOOLS, type QuickLink } from './links'
+import { siteName } from '../../lib/web'
+import { GOOGLE_CREATE, findApp, type StoreApp } from '../store/catalog'
 import { SiteIcon } from './SiteIcon'
 import type { HistoryItem } from './types'
 
 interface BrowserHomeProps {
   history: HistoryItem[]
+  myApps: string[]
   onOpen: (url: string, options?: { record?: boolean }) => void
+  onOpenApp: (app: StoreApp) => void
+  onShowStore: () => void
   onUpdate: (id: string, patch: Partial<HistoryItem>) => void
   onRemove: (id: string) => void
 }
 
-const VISIBLE_STEP = 8
+const RECENT = 5
 
 function hostOf(url: string) {
   try {
@@ -26,46 +28,21 @@ function hostOf(url: string) {
   }
 }
 
-function LinkGrid({ links, onOpen, compact = false }: { links: QuickLink[]; onOpen: (url: string) => void; compact?: boolean }) {
-  return (
-    <div className={`tile-grid ${compact ? 'tile-grid-compact' : ''}`}>
-      {links.map(({ label, url, icon: Icon, tint }) => (
-        <button
-          key={url}
-          type="button"
-          className="tile"
-          style={{ '--tint': tint } as CSSProperties}
-          onClick={() => onOpen(url)}
-        >
-          <span className="tile-icon" aria-hidden="true">
-            {compact ? <Plus size={14} /> : <Icon size={18} />}
-          </span>
-          <span className="tile-label">{label}</span>
-        </button>
-      ))}
-    </div>
-  )
-}
-
-/** Pestaña de inicio: "Continuar donde lo dejaste", Google y herramientas de estudio. */
-export function BrowserHome({ history, onOpen, onUpdate, onRemove }: BrowserHomeProps) {
+/** Pestaña de inicio: seguir con lo último, tus apps y lo que has abierto. */
+export function BrowserHome({ history, myApps, onOpen, onOpenApp, onShowStore, onUpdate, onRemove }: BrowserHomeProps) {
+  const [showAll, setShowAll] = useState(false)
   const [subjectFilter, setSubjectFilter] = useState<SubjectId | 'all'>('all')
-  const [visible, setVisible] = useState(VISIBLE_STEP)
   const [editing, setEditing] = useState<{ id: string; title: string } | null>(null)
 
-  const subjectsPresent = useMemo(() => {
-    const counts = new Map<SubjectId, number>()
-    for (const item of history) counts.set(item.subject, (counts.get(item.subject) ?? 0) + 1)
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([id]) => id)
-  }, [history])
-
-  const filtered = useMemo(() => {
-    const list = subjectFilter === 'all' ? history : history.filter((h) => h.subject === subjectFilter)
-    return [...list].sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.lastVisited - a.lastVisited)
-  }, [history, subjectFilter])
-
+  const sorted = useMemo(
+    () => [...history].sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || b.lastVisited - a.lastVisited),
+    [history],
+  )
+  const subjectsPresent = useMemo(() => [...new Set(history.map((h) => h.subject))], [history])
+  const filtered = showAll && subjectFilter !== 'all' ? sorted.filter((h) => h.subject === subjectFilter) : sorted
+  const visible = showAll ? filtered : filtered.slice(0, RECENT)
   const last = history.length > 0 ? history.reduce((a, b) => (b.lastVisited > a.lastVisited ? b : a)) : null
-  const openTool = (url: string) => onOpen(url, { record: false })
+  const apps = myApps.map(findApp).filter((app): app is StoreApp => Boolean(app))
 
   const saveTitle = () => {
     if (editing && editing.title.trim()) onUpdate(editing.id, { title: editing.title.trim() })
@@ -77,31 +54,58 @@ export function BrowserHome({ history, onOpen, onUpdate, onRemove }: BrowserHome
       {last && (
         <button type="button" className="resume-card" onClick={() => onOpen(last.url)}>
           <span className="resume-icon">
-            <SiteIcon url={last.url} category={last.category} size={22} />
+            <SiteIcon url={last.url} category={last.category} size={20} />
           </span>
           <span className="resume-text">
             <span className="eyebrow">Seguir con lo último</span>
             <span className="resume-title">{last.title}</span>
-            <span className="resume-meta">
-              {SUBJECTS[last.subject]?.label} · {hostOf(last.url)} · {timeAgo(last.lastVisited)}
-            </span>
           </span>
         </button>
       )}
 
-      <section className="home-section" aria-labelledby="continue-title">
-        <h3 className="section-title" id="continue-title">
-          <History size={16} aria-hidden="true" /> Continuar donde lo dejaste
+      <section className="home-section" aria-labelledby="my-apps-title">
+        <h3 className="section-title" id="my-apps-title">
+          Mis apps
+        </h3>
+        <div className="app-launcher">
+          {apps.map((app) => {
+            const Icon = app.icon
+            return (
+              <button key={app.id} type="button" className="launcher-item" onClick={() => onOpenApp(app)} title={app.description}>
+                <span className="app-icon" aria-hidden="true">
+                  <Icon size={20} />
+                </span>
+                <span className="launcher-name">{app.name}</span>
+              </button>
+            )
+          })}
+          <button type="button" className="launcher-item launcher-add" onClick={onShowStore}>
+            <span className="app-icon" aria-hidden="true">
+              <Plus size={20} />
+            </span>
+            <span className="launcher-name">Añadir apps</span>
+          </button>
+        </div>
+        <p className="create-row">
+          <span>Crear:</span>
+          {GOOGLE_CREATE.map((c) => (
+            <button key={c.url} type="button" className="text-link" onClick={() => onOpen(c.url, { record: false })}>
+              {c.label}
+            </button>
+          ))}
+        </p>
+      </section>
+
+      <section className="home-section" aria-labelledby="history-title">
+        <h3 className="section-title" id="history-title">
+          Lo que has abierto
         </h3>
 
         {history.length === 0 ? (
-          <p className="empty">
-            Aquí aparecerá lo que vayas abriendo, clasificado por asignatura y tipo de web, para que vuelvas a ello
-            con un clic.
-          </p>
+          <p className="empty">Busca algo arriba o abre una app. Aquí lo verás ordenado por asignatura para volver luego.</p>
         ) : (
           <>
-            {subjectsPresent.length > 1 && (
+            {showAll && subjectsPresent.length > 1 && (
               <div className="chip-row" role="group" aria-label="Filtrar por asignatura">
                 <button
                   type="button"
@@ -128,9 +132,9 @@ export function BrowserHome({ history, onOpen, onUpdate, onRemove }: BrowserHome
             )}
 
             <ul className="history-list">
-              {filtered.slice(0, visible).map((item) => (
+              {visible.map((item) => (
                 <li key={item.id} className={`history-item ${item.pinned ? 'is-pinned' : ''}`}>
-                  <span className={`history-icon cat-${item.category}`}>
+                  <span className="history-icon">
                     <SiteIcon url={item.url} category={item.category} />
                   </span>
                   {editing?.id === item.id ? (
@@ -157,7 +161,7 @@ export function BrowserHome({ history, onOpen, onUpdate, onRemove }: BrowserHome
                     <button type="button" className="history-open" onClick={() => onOpen(item.url)} title={item.url}>
                       <span className="history-title">{item.title}</span>
                       <span className="history-meta">
-                        {CATEGORIES[item.category]} · {hostOf(item.url)} · {timeAgo(item.lastVisited)}
+                        {hostOf(item.url)} · {timeAgo(item.lastVisited)}
                       </span>
                     </button>
                   )}
@@ -198,41 +202,20 @@ export function BrowserHome({ history, onOpen, onUpdate, onRemove }: BrowserHome
                 </li>
               ))}
             </ul>
-            {filtered.length > visible && (
-              <button type="button" className="btn btn-link" onClick={() => setVisible((v) => v + VISIBLE_STEP)}>
-                Ver más ({filtered.length - visible})
+            {history.length > RECENT && (
+              <button
+                type="button"
+                className="btn btn-link"
+                onClick={() => {
+                  setShowAll((v) => !v)
+                  setSubjectFilter('all')
+                }}
+              >
+                {showAll ? 'Ver menos' : `Ver todo (${history.length})`}
               </button>
             )}
           </>
         )}
-      </section>
-
-      <section className="home-section" aria-labelledby="google-title">
-        <div className="section-head">
-          <h3 className="section-title" id="google-title">
-            <LayoutGrid size={16} aria-hidden="true" /> Google
-          </h3>
-          <LoginButton service="google" />
-        </div>
-        <LinkGrid links={GOOGLE_APPS} onOpen={openTool} />
-        <div className="create-row">
-          <span className="create-label">Crear nuevo:</span>
-          <LinkGrid links={GOOGLE_CREATE} onOpen={openTool} compact />
-        </div>
-        <p className="hint hint-box">
-          <Info size={14} aria-hidden="true" />
-          <span>
-            ¿Tienes un Doc, Hoja o Presentación? Pega su enlace en la barra de arriba: se abrirá aquí dentro (si has
-            entrado en tu cuenta de Google) y quedará guardado en «Continuar».
-          </span>
-        </p>
-      </section>
-
-      <section className="home-section" aria-labelledby="tools-title">
-        <h3 className="section-title" id="tools-title">
-          <Sparkles size={16} aria-hidden="true" /> Herramientas de estudio
-        </h3>
-        <LinkGrid links={STUDY_TOOLS} onOpen={openTool} />
       </section>
     </div>
   )

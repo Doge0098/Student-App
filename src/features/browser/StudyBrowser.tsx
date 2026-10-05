@@ -1,4 +1,4 @@
-import { ArrowRight, Compass, ExternalLink, House, Info, RotateCcw, TriangleAlert, X } from 'lucide-react'
+import { ArrowRight, Compass, ExternalLink, House, Info, LayoutGrid, RotateCcw, TriangleAlert, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Modal } from '../../components/Modal'
 import { Panel } from '../../components/Panel'
@@ -21,15 +21,19 @@ import {
   siteName,
   type SearchEngineId,
 } from '../../lib/web'
+import { platform } from '../../platform'
 import { useAccounts } from '../accounts/AccountsContext'
 import { LoginButton } from '../accounts/LoginButton'
 import { useMusic } from '../music/MusicContext'
 import { useRemainingMs, useTimer } from '../timer/TimerContext'
+import { AppStore } from '../store/AppStore'
+import { DEFAULT_MY_APPS, type StoreApp } from '../store/catalog'
 import { BrowserHome } from './BrowserHome'
 import { SiteIcon } from './SiteIcon'
 import type { BrowserTab, HistoryItem } from './types'
 
 const HOME = 'home'
+const STORE = 'store'
 const MAX_TABS = 6
 const MAX_HISTORY = 150
 
@@ -51,12 +55,14 @@ export function StudyBrowser() {
   const [tabs, setTabs] = usePersistentState<BrowserTab[]>('browser-tabs', [])
   const [activeId, setActiveId] = usePersistentState<string>('browser-active', HOME)
   const [engine, setEngine] = usePersistentState<SearchEngineId>('browser-engine', 'google')
+  const [myApps, setMyApps] = usePersistentState<string[]>('my-apps', DEFAULT_MY_APPS)
   const [address, setAddress] = useState('')
   const [pending, setPending] = useState<{ url: string; label: string } | null>(null)
   // Las pestañas guardadas solo se cargan cuando se abren, no todas a la vez al entrar.
   const [loaded, setLoaded] = useState<Set<string>>(() => new Set([activeId]))
 
   const activeTab = tabs.find((t) => t.id === activeId) ?? null
+  const showStore = activeId === STORE
 
   // Tras iniciar sesión en Google se recargan los documentos abiertos para que usen la cuenta.
   const googleVersion = accounts.versions.google
@@ -113,7 +119,7 @@ export function StudyBrowser() {
   const launch = (url: URL, shouldRecord: boolean) => {
     const title = deriveTitle(url)
     if (shouldRecord) record(url, title)
-    const embed = getEmbed(url)
+    const embed = getEmbed(url) ?? (platform.canEmbedAnySite ? { src: url.href } : null)
 
     if (embed) {
       const key = pageKey(url)
@@ -126,7 +132,7 @@ export function StudyBrowser() {
         activate(tab.id)
       }
     } else {
-      window.open(url.href, '_blank', 'noopener,noreferrer')
+      platform.openExternal(url.href)
       toast(
         categorize(url) === 'google'
           ? 'Google abre sus apps en una pestaña nueva. Pega aquí el enlace de tu Doc para tenerlo dentro.'
@@ -156,6 +162,20 @@ export function StudyBrowser() {
     launch(url, shouldRecord && !distraction)
   }
 
+  const openApp = (app: StoreApp) => {
+    if (app.webUrl) open(app.webUrl, { record: false })
+    else if (app.downloadUrl) downloadApp(app)
+  }
+
+  const downloadApp = (app: StoreApp) => {
+    if (!app.downloadUrl) return
+    platform.openExternal(app.downloadUrl)
+    toast(`Te llevo a la página oficial de ${app.name} para descargarlo.`)
+  }
+
+  const toggleMyApp = (id: string) =>
+    setMyApps((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]))
+
   const submit = (e: FormEvent) => {
     e.preventDefault()
     if (!address.trim()) return
@@ -177,14 +197,14 @@ export function StudyBrowser() {
     setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)))
 
   return (
-    <Panel title="Navegador de estudio" icon={<Compass size={18} />} panel="browser" className="browser-panel">
+    <Panel title="Navegador" icon={<Compass size={18} />} panel="browser" className="browser-panel">
       <form className="address-bar" onSubmit={submit} role="search">
         <input
           type="text"
           inputMode="search"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
-          placeholder="Busca algo o pega un enlace (Wikipedia, YouTube, Google Docs…)"
+          placeholder="Busca algo o pega un enlace"
           aria-label="Buscar o escribir dirección"
           enterKeyHint="go"
         />
@@ -209,12 +229,22 @@ export function StudyBrowser() {
         <button
           type="button"
           role="tab"
-          aria-selected={!activeTab}
-          className={`tab ${!activeTab ? 'is-active' : ''}`}
+          aria-selected={!activeTab && !showStore}
+          className={`tab ${!activeTab && !showStore ? 'is-active' : ''}`}
           onClick={() => activate(HOME)}
         >
           <House size={15} aria-hidden="true" />
           <span className="tab-title">Inicio</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={showStore}
+          className={`tab ${showStore ? 'is-active' : ''}`}
+          onClick={() => activate(STORE)}
+        >
+          <LayoutGrid size={15} aria-hidden="true" />
+          <span className="tab-title">Apps</span>
         </button>
         {tabs.map((tab) => (
           <div key={tab.id} className={`tab ${tab.id === activeTab?.id ? 'is-active' : ''}`}>
@@ -266,13 +296,19 @@ export function StudyBrowser() {
       )}
 
       <div className="browser-viewport">
-        {!activeTab && (
+        {!activeTab && !showStore && (
           <BrowserHome
             history={history}
+            myApps={myApps}
             onOpen={open}
+            onOpenApp={openApp}
+            onShowStore={() => activate(STORE)}
             onUpdate={updateItem}
             onRemove={(id) => setHistory((prev) => prev.filter((h) => h.id !== id))}
           />
+        )}
+        {showStore && (
+          <AppStore myApps={myApps} onToggleMyApp={toggleMyApp} onOpenApp={openApp} onDownloadApp={downloadApp} />
         )}
         {tabs.map((tab) =>
           loaded.has(tab.id) ? (
@@ -321,7 +357,7 @@ function DistractionModal({ label, onCancel, onConfirm }: DistractionModalProps)
           : 'Has venido aquí a estudiar. ¿Seguro que quieres abrirlo?'}
       </p>
       <div className="modal-actions">
-        <button type="button" className="btn btn-primary" autoFocus onClick={onCancel}>
+        <button type="button" className="btn btn-primary" data-autofocus onClick={onCancel}>
           Volver a lo mío
         </button>
         <button type="button" className="btn btn-ghost" onClick={onConfirm}>

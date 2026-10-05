@@ -40,7 +40,7 @@ export function TimerPrompt() {
             ))}
           </div>
           <div className="modal-actions">
-            <button type="button" className="btn btn-primary" autoFocus onClick={() => timer.startBreak(breakMinutes)}>
+            <button type="button" className="btn btn-primary" data-autofocus onClick={() => timer.startBreak(breakMinutes)}>
               <Coffee size={18} /> Descansar {breakMinutes} min
             </button>
             <button type="button" className="btn" onClick={() => timer.startFocus()}>
@@ -52,7 +52,7 @@ export function TimerPrompt() {
         <>
           <p className="modal-text">Levántate, bebe agua y… ¿volvemos?</p>
           <div className="modal-actions">
-            <button type="button" className="btn btn-primary" autoFocus onClick={() => timer.startFocus()}>
+            <button type="button" className="btn btn-primary" data-autofocus onClick={() => timer.startFocus()}>
               <BookOpen size={18} /> Seguir estudiando ({focusMinutes} min)
             </button>
             <button type="button" className="btn" onClick={() => timer.startBreak(5)}>

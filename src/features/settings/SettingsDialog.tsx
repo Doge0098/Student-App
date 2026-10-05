@@ -1,20 +1,29 @@
-import { Check, Compass, Headphones, ListTodo, LogIn, LogOut, Monitor, Moon, RotateCcw, ShieldCheck, Sun, Timer, UserRound } from 'lucide-react'
+import { Check, CircleCheck, Compass, Download, Headphones, ListTodo, LogIn, LogOut, Monitor, Moon, RotateCcw, ShieldCheck, Sun, Timer, UserRound } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Modal } from '../../components/Modal'
 import { COLORS, COLOR_IDS, type ColorId } from '../../lib/colors'
+import { platform } from '../../platform'
+import { useInstallPrompt } from '../../platform/install'
 import { useAccounts } from '../accounts/AccountsContext'
 import { SERVICES, type ServiceId } from '../accounts/services'
 import { PANEL_LABELS, accentStyle, type PanelId, type ThemeMode } from './appearance'
 import { useAppearance } from './AppearanceContext'
 
-export type SettingsTab = 'appearance' | 'accounts'
+export type SettingsTab = 'appearance' | 'accounts' | 'install'
 
 interface SettingsDialogProps {
   open: boolean
   tab: SettingsTab
   onTabChange: (tab: SettingsTab) => void
   onClose: () => void
+  onShowGuide: () => void
 }
+
+const TABS: { id: SettingsTab; label: string }[] = [
+  { id: 'appearance', label: 'Personalizar' },
+  { id: 'accounts', label: 'Cuentas' },
+  { id: 'install', label: 'Instalar' },
+]
 
 const THEMES: { id: ThemeMode; label: string; icon: ReactNode }[] = [
   { id: 'light', label: 'Claro', icon: <Sun size={16} /> },
@@ -178,30 +187,74 @@ function AccountsSettings() {
   )
 }
 
-export function SettingsDialog({ open, tab, onTabChange, onClose }: SettingsDialogProps) {
+function InstallSettings({ onShowGuide }: { onShowGuide: () => void }) {
+  const { canInstall, install } = useInstallPrompt()
+  return (
+    <div className="settings-section">
+      <div className="setting">
+        <span className="setting-label">Instalar en este ordenador o móvil</span>
+        {platform.isInstalled ? (
+          <p className="hint hint-box">
+            <CircleCheck size={14} aria-hidden="true" />
+            <span>Ya estás usando Student App como app instalada.</span>
+          </p>
+        ) : canInstall ? (
+          <>
+            <p className="hint">Tendrás su propio icono y ventana, sin pestañas del navegador que distraigan.</p>
+            <div>
+              <button type="button" className="btn btn-primary" onClick={() => void install()}>
+                <Download size={16} /> Instalar Student App
+              </button>
+            </div>
+          </>
+        ) : (
+          <ul className="install-steps">
+            <li>
+              <strong>Chrome o Edge (ordenador o Chromebook):</strong> pulsa el icono de instalar de la barra de
+              direcciones, o busca «Instalar» en el menú ⋮.
+            </li>
+            <li>
+              <strong>Android:</strong> menú ⋮ → «Añadir a pantalla de inicio».
+            </li>
+            <li>
+              <strong>iPhone o iPad (Safari):</strong> botón Compartir → «Añadir a pantalla de inicio».
+            </li>
+          </ul>
+        )}
+      </div>
+      <div className="setting">
+        <span className="setting-label">Versión de escritorio</span>
+        <p className="hint">
+          Está en preparación: un programa para Windows, Mac y Linux donde todas las webs se abrirán dentro de la app.
+        </p>
+      </div>
+      <button type="button" className="btn btn-link" onClick={onShowGuide}>
+        Ver otra vez la guía de bienvenida
+      </button>
+    </div>
+  )
+}
+
+export function SettingsDialog({ open, tab, onTabChange, onClose, onShowGuide }: SettingsDialogProps) {
   return (
     <Modal open={open} title="Ajustes" onClose={onClose} wide>
       <div className="segmented settings-tabs" role="tablist" aria-label="Secciones de ajustes">
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'appearance'}
-          className={tab === 'appearance' ? 'is-active' : ''}
-          onClick={() => onTabChange('appearance')}
-        >
-          Personalizar
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={tab === 'accounts'}
-          className={tab === 'accounts' ? 'is-active' : ''}
-          onClick={() => onTabChange('accounts')}
-        >
-          Cuentas
-        </button>
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            className={tab === t.id ? 'is-active' : ''}
+            onClick={() => onTabChange(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
-      {tab === 'appearance' ? <AppearanceSettings /> : <AccountsSettings />}
+      {tab === 'appearance' && <AppearanceSettings />}
+      {tab === 'accounts' && <AccountsSettings />}
+      {tab === 'install' && <InstallSettings onShowGuide={onShowGuide} />}
     </Modal>
   )
 }

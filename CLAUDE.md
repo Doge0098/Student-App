@@ -20,6 +20,10 @@ La interfaz está en español.
    **"¿Quieres descansar o seguir?"**.
 5. **Suite de Google** (gratis): Drive, Docs, Hojas, Presentaciones, Classroom, Calendar,
    Gmail, Keep, Meet, Formularios, Traductor, Académico.
+6. **Inicio de sesión** en las funciones que lo necesiten (Google, Spotify).
+7. **Personalización**: claro/oscuro y colores de iconos y funciones, **solo colores predefinidos**.
+8. **Minimalista y fácil de entender**. Wikipedia se queda.
+9. **Tienda de apps de estudio** (VS Code, máquinas virtuales, IA…) y preparada para **app descargable**.
 
 ## Decisiones tomadas
 
@@ -38,7 +42,16 @@ La interfaz está en español.
 - **Música**: APIs oficiales de reproductor (YouTube IFrame API y Spotify iFrame API). Los enlaces de
   YouTube Music se reproducen con el reproductor de YouTube. Spotify sin sesión iniciada solo da 30 s.
 - **Temporizador**: guarda la hora de fin (`endsAt`), no una cuenta atrás, para no desajustarse en
-  segundo plano. Sonido con Web Audio + notificación del navegador.
+  segundo plano. Sonido con Web Audio + notificación del navegador. La duración se elige con − / +
+  (de 5 en 5, mínimo 30); el descanso se elige en el aviso final.
+- **Tienda de apps**: catálogo en `src/features/store/catalog.ts` (con test). Cada app tiene `webUrl`
+  (se abre por el navegador de la app) y/o `downloadUrl` (página oficial). La web no instala programas.
+  «Mis apps» (ids en `localStorage`, clave `my-apps`) se muestran en Inicio.
+- **App descargable**: PWA (`public/manifest.webmanifest`, `public/sw.js`, iconos PNG) con botón
+  «Instalar» cuando el navegador lo permite (`src/platform/install.ts`). Vite usa `base: './'`.
+  Todo lo que dependa de web vs escritorio pasa por `src/platform/index.ts`: la futura versión
+  Electron expondrá `window.studentAppDesktop` (preload) y entonces `platform.canEmbedAnySite` será
+  `true` (todas las webs dentro) y `openExternal` usará el navegador del sistema.
 
 ## Sobre una versión instalable (respuesta dada al usuario)
 
@@ -56,13 +69,17 @@ La interfaz está en español.
 src/
   lib/            lógica pura con tests (web.ts, subjects.ts, time.ts, oembed.ts, alerts.ts, text.ts)
   hooks/          usePersistentState
-  components/     Panel, Modal, Toast, SubjectPicker
+  components/     Panel, Modal (usa data-autofocus para el botón principal), Toast, SubjectPicker
+  platform/       web vs escritorio (index.ts) e instalación PWA (install.ts)
   features/
     timer/        TimerContext, FocusTimer, TimerPrompt ("¿descansar o seguir?")
-    tasks/        TaskList
+    tasks/        TaskList (pendientes arriba, hechas plegadas)
     music/        MusicContext, providers.ts (carga de APIs), reproductores y panel
-    browser/      navegador de estudio, inicio con "Continuar donde lo dejaste" y accesos de Google
-  App.tsx         maquetación: izquierda (temporizador + tareas), centro (navegador), derecha (música)
+    browser/      navegador: pestañas Inicio (seguir con lo último, Mis apps, historial) y Apps
+    store/        tienda de apps de estudio (catalog.ts + AppStore.tsx)
+    accounts/     inicio de sesión en Google y Spotify
+    settings/     apariencia (colores, tema), ventana de Ajustes y guía de bienvenida
+  App.tsx         maquetación: izquierda (concentración + tareas), centro (navegador), derecha (música)
 ```
 
 ## Comandos
@@ -86,11 +103,16 @@ src/
     (temporizador, tareas, navegador, música) elegidos de una **paleta de colores predefinidos**
     (nada de selector RGB). Paleta en `src/lib/colors.ts`; cada panel lleva `data-accent` y redefine
     `--accent` (ver `styles.css`). Cuentas en `src/features/accounts/`.
-- [ ] Decidir con el usuario si se hace versión instalable (ver abajo).
-- [ ] README en español con cómo usarla y arrancarla.
+- [x] Fase 3 (el usuario prefiere seguir mejorando la web antes del escritorio):
+  - Más minimalista: un solo botón de ajustes, temporizador con − / +, tareas sin filtros, música
+    compacta, Inicio con «Mis apps», guía de bienvenida la primera vez.
+  - App descargable: PWA instalable (Chrome no da errores de instalación) y funciona sin internet.
+  - Tienda de apps de estudio con ~50 apps en 8 categorías.
+- [x] README en español.
 - [ ] Publicarla en internet (GitHub Pages o similar).
 - [ ] Integración real con Google (OAuth): ver archivos de Drive, eventos de Calendar y sincronizar
       tareas con Google Tasks. Requiere crear un proyecto gratuito en Google Cloud.
-- [ ] Versión de escritorio (Tauri/Electron) o extensión de navegador: navegador integrado de verdad
-      donde carguen todas las webs y se pueda saber qué página exacta está viendo el estudiante.
+- [ ] Versión de escritorio con Electron (carpeta `desktop/`): preload que exponga
+      `window.studentAppDesktop`, pestañas con WebContentsView para mostrar cualquier web y saber su
+      título/URL, empaquetado para Windows/Mac/Linux. Spotify necesitará Widevine (p. ej. Electron de castLabs).
 - [ ] Clasificación con IA opcional para afinar las asignaturas.

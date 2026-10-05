@@ -64,6 +64,9 @@ describe('categorize', () => {
     expect(categorize(u('https://chatgpt.com/'))).toBe('ia')
     expect(categorize(u('https://www.instagram.com/'))).toBe('distraccion')
     expect(categorize(u('https://ejemplo.com/'))).toBe('web')
+    expect(categorize(u('https://vscode.dev/'))).toBe('programacion')
+    expect(categorize(u('https://colab.research.google.com/drive/abc'))).toBe('programacion')
+    expect(categorize(u('https://excalidraw.com/'))).toBe('herramienta')
   })
 })
 
@@ -134,12 +137,16 @@ describe('getEmbed', () => {
       hint: 'search',
     })
     expect(getEmbed(u('https://docs.google.com/document/d/abc/edit'))?.hint).toBe('google-login')
+    expect(getEmbed(u('https://excalidraw.com/'))?.src).toBe('https://excalidraw.com/')
+    expect(getEmbed(u('https://bellard.org/jslinux/'))?.src).toBe('https://bellard.org/jslinux/')
   })
 
   it('manda a pestaña nueva las que lo bloquean', () => {
     expect(getEmbed(u('https://classroom.google.com/'))).toBeNull()
     expect(getEmbed(u('https://www.instagram.com/'))).toBeNull()
     expect(getEmbed(u('https://music.youtube.com/watch?v=jfKfPfyJRdk'))).toBeNull()
+    expect(getEmbed(u('https://vscode.dev/'))).toBeNull()
+    expect(getEmbed(u('https://chatgpt.com/'))).toBeNull()
   })
 })
 

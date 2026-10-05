@@ -18,7 +18,11 @@ export function Modal({ open, title, icon, onClose, wide = false, children }: Mo
   useEffect(() => {
     const dialog = ref.current
     if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
+    if (open && !dialog.open) {
+      dialog.showModal()
+      // El botón principal (marcado con data-autofocus) recibe el foco, no la X de cerrar.
+      dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus()
+    }
     if (!open && dialog.open) dialog.close()
   }, [open])
 
