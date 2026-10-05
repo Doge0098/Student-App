@@ -4,10 +4,13 @@
  *   npm run smoke                       (necesita la web construida: npm run build en la raíz)
  *   LOCKIN_WEB_DIR=/otra/dist npm run smoke
  *   xvfb-run -a npm run smoke           (Linux sin pantalla)
+ *   LOCKIN_SMOKE_CA=/ruta/ca.crt ...    (detrás de un proxy con su propia CA)
+ *   LOCKIN_SMOKE_APP=release/linux-unpacked/lockin node scripts/smoke.mjs   (app empaquetada)
  *
  * Usa Playwright si está instalado (playwright o playwright-core), o la ruta de PLAYWRIGHT_MODULE.
  * Si existe HTTPS_PROXY se pasa a Chromium con --proxy-server.
  */
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -18,7 +21,7 @@ const require = createRequire(import.meta.url)
 const desktopDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 function loadPlaywright() {
-  const ids = [process.env.PLAYWRIGHT_MODULE, 'playwright', 'playwright-core', '/opt/node22/lib/node_modules/playwright']
+  const ids = [process.env.PLAYWRIGHT_MODULE, 'playwright', 'playwright-core']
   for (const id of ids.filter(Boolean)) {
     try {
       return require(id)
@@ -51,14 +54,23 @@ async function waitFor(fn, timeout = 20000, step = 250) {
 }
 
 const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'lockin-smoke-'))
-const args = [desktopDir]
+// LOCKIN_SMOKE_APP=/ruta/al/ejecutable prueba la app ya empaquetada (p. ej. release/linux-unpacked/lockin).
+const packagedApp = process.env.LOCKIN_SMOKE_APP
+const args = packagedApp ? [] : [desktopDir]
 // Chromium no arranca como root con su sandbox de sistema (solo pasa en contenedores de pruebas).
 if (process.getuid?.() === 0) args.push('--no-sandbox')
 const proxy = process.env.HTTPS_PROXY || process.env.https_proxy
 if (proxy) args.push(`--proxy-server=${proxy}`)
+// Solo para entornos de prueba detrás de un proxy que reabre el TLS con su propia CA:
+// LOCKIN_SMOKE_CA=/ruta/ca.crt hace que Chromium confíe en esa CA concreta (por su clave pública).
+if (process.env.LOCKIN_SMOKE_CA) {
+  const pem = fs.readFileSync(process.env.LOCKIN_SMOKE_CA, 'utf8')
+  const spki = new crypto.X509Certificate(pem).publicKey.export({ type: 'spki', format: 'der' })
+  args.push(`--ignore-certificate-errors-spki-list=${crypto.createHash('sha256').update(spki).digest('base64')}`)
+}
 
 const app = await electron.launch({
-  executablePath: electronBinary,
+  executablePath: packagedApp || electronBinary,
   args,
   env: { ...process.env, LOCKIN_USER_DATA: userData },
   timeout: 60000,
@@ -188,8 +200,35 @@ try {
     await sleep(3000)
     const afterBack = await guestUrl(firstId)
     const blockedBack = await win.evaluate(() => window.__blocked.slice())
-    check('«Atrás» hacia una web bloqueada se cancela', !afterBack.startsWith('https://example.com') || blockedBack.length > 0, `${afterBack} ${JSON.stringify(blockedBack)}`)
+    check(
+      '«Atrás» (sin pasar por la página) hacia una web bloqueada se cancela y avisa',
+      afterBack.includes('wikipedia.org/wiki/Luna') && blockedBack.some((u) => u.startsWith('https://example.com')),
+      `${afterBack} ${JSON.stringify(blockedBack)}`,
+    )
     await win.evaluate(() => window.lockinDesktop.setBlockedSites([]))
+
+    /* --- 4b. Atajos de teclado en la pestaña: Alt+← / Alt+→ --- */
+    const press = (id, keyCode, modifiers) =>
+      app.evaluate(({ webContents }, [gid, k, m]) => {
+        const w = webContents.fromId(gid)
+        w.focus()
+        w.sendInputEvent({ type: 'keyDown', keyCode: k, modifiers: m })
+        w.sendInputEvent({ type: 'keyUp', keyCode: k, modifiers: m })
+      }, [id, keyCode, modifiers])
+    const backMod = process.platform === 'darwin' ? ['meta'] : ['alt']
+    await press(firstId, process.platform === 'darwin' ? '[' : 'Left', backMod)
+    const wentBack = await waitFor(async () => {
+      const u = await guestUrl(firstId)
+      if (!u.startsWith('https://example.com')) throw new Error('aún no')
+      return u
+    }, 10000)
+    await press(firstId, process.platform === 'darwin' ? ']' : 'Right', backMod)
+    const wentForward = await waitFor(async () => {
+      const u = await guestUrl(firstId)
+      if (!u.includes('/wiki/Luna')) throw new Error('aún no')
+      return u
+    }, 10000)
+    check('Atajos Atrás/Adelante en la pestaña', wentBack && wentForward, `${wentBack} → ${wentForward}`)
 
     /* --- 5. Ventanas nuevas desde una web --- */
     await win.evaluate(() => window.lockinDesktop.setBlockedSites(['tiktok.com']))
@@ -217,7 +256,7 @@ try {
           .filter((w) => !w.webContents.getURL().startsWith('app://'))
           .map((w) => ({ url: w.webContents.getURL(), webSession: w.webContents.session === session.fromPartition('persist:lockin-web') })),
       )
-      if (!list.length) throw new Error('sin ventana')
+      if (!list.length || !list[0].url.startsWith('https://example.com')) throw new Error('sin ventana')
       return list[0]
     }, 15000)
     check('Una ventana emergente (window.open con tamaño) se abre en una ventana de LockIn', popup, JSON.stringify(popup))
@@ -231,6 +270,35 @@ try {
     check('…y sin Node', popupNoNode === 'undefined,undefined', popupNoNode)
     await win.evaluate(() => window.lockinDesktop.setBlockedSites([]))
   }
+
+  /* --- 5b. «Iniciar sesión» desde la app: ventana de LockIn en la sesión adecuada --- */
+  const loginWindow = async (url, name) => {
+    await win.evaluate(([u, n]) => {
+      window.open(u, n, 'popup=yes,width=480,height=680')
+      return true
+    }, [url, name])
+    return waitFor(async () => {
+      const list = await app.evaluate(({ BrowserWindow, session }) =>
+        BrowserWindow.getAllWindows()
+          .filter((w) => !w.webContents.getURL().startsWith('app://') && w.webContents.getURL())
+          .map((w) => ({
+            url: w.webContents.getURL(),
+            session: w.webContents.session === session.defaultSession ? 'app' : w.webContents.session === session.fromPartition('persist:lockin-web') ? 'web' : 'otra',
+            child: Boolean(w.getParentWindow()),
+          })),
+      )
+      if (!list.length) throw new Error('sin ventana')
+      return list[0]
+    }, 20000)
+  }
+  const closeOthers = () =>
+    app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().filter((w) => !w.webContents.getURL().startsWith('app://')).forEach((w) => w.destroy()))
+  const google = await loginWindow('https://accounts.google.com/', 'lockin-google')
+  check('«Iniciar sesión con Google» abre una ventana de LockIn con la sesión de las pestañas', google?.session === 'web' && google.url.includes('google.'), JSON.stringify(google))
+  await closeOthers()
+  const spotify = await loginWindow('https://accounts.spotify.com/', 'lockin-spotify')
+  check('«Iniciar sesión con Spotify» usa la sesión del reproductor (la de la app)', spotify?.session === 'app' && spotify.url.includes('spotify.com'), JSON.stringify(spotify))
+  await closeOthers()
 
   /* --- 6. Pestañas ocultas conservan su estado --- */
   const beforeSecond = firstId ? await guestUrl(firstId) : ''
@@ -246,14 +314,6 @@ try {
   const hiddenFirst = await win.$$eval('.browser-frame', (els) => els.map((e) => e.hidden))
   const firstAlive = firstId ? await guestUrl(firstId) : null
   check('La primera pestaña sigue viva y en la misma página mientras está oculta', firstAlive === beforeSecond && hiddenFirst.includes(true), `${firstAlive} hidden=${JSON.stringify(hiddenFirst)}`)
-
-  /* --- 7. La ventana de la app no se deja llevar a otra web --- */
-  await win.evaluate(() => {
-    location.href = 'https://example.net/'
-  })
-  await sleep(1500)
-  check('La app no sale de app://lockin/', win.url().startsWith('app://lockin/'), win.url())
-  check('…y el enlace va al navegador del sistema', !patched || (await opened()).some((u) => u.includes('example.net')))
 
   /* --- 8. <webview> manipuladas desde la app: siempre seguras --- */
   const attached = await win.evaluate(async () => {
@@ -281,23 +341,52 @@ try {
   check('Una <webview> con file:// no se crea', attached && !hardened.fileGuest, JSON.stringify(hardened))
   check('Una <webview> con nodeintegration/preload/otra sesión se fuerza a la segura', hardened.found && hardened.inside === 'undefined,undefined' && hardened.webSession, JSON.stringify(hardened))
 
-  /* --- 9. Informativo: reproductor de YouTube dentro de la app --- */
-  const yt = await win.evaluate(async () => {
+  /* --- 9. YouTube: reproductor de la app (Música) y vídeo en una pestaña, sin «Error 153» --- */
+  await win.evaluate(() => {
     const f = document.createElement('iframe')
-    f.src = 'https://www.youtube.com/embed/jfKfPfyJRdk?enablejsapi=1&origin=' + encodeURIComponent(location.origin)
+    f.src = 'https://www.youtube.com/embed/M7lc1UVf-VE?enablejsapi=1&origin=' + encodeURIComponent(location.origin)
     f.width = '320'
     f.height = '180'
-    f.id = 'yt-smoke'
     document.body.append(f)
-    await new Promise((r) => setTimeout(r, 8000))
-    return true
   })
-  const ytText = await app.evaluate(async ({ BrowserWindow }) => {
-    const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().startsWith('app://'))
-    const frame = w?.webContents.mainFrame.framesInSubtree.find((f) => f.url.includes('youtube.com/embed'))
-    return frame ? await frame.executeJavaScript('document.body.innerText.slice(0, 200)') : 'sin marco'
+  const ytText = await waitFor(async () => {
+    const text = await app.evaluate(async ({ BrowserWindow }) => {
+      const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().startsWith('app://'))
+      const frame = w?.webContents.mainFrame.framesInSubtree.find((f) => f.url.includes('youtube.com/embed'))
+      return frame ? await frame.executeJavaScript('document.body.innerText.trim().slice(0, 160)') : ''
+    })
+    if (!text) throw new Error('aún no')
+    return text
+  }, 20000)
+  check('El reproductor de YouTube funciona dentro de la app (sin «Error 153»)', ytText && !/Error 15\d/.test(ytText), JSON.stringify(ytText))
+
+  await win.fill(address, 'https://www.youtube.com/watch?v=M7lc1UVf-VE')
+  await win.press(address, 'Enter')
+  const ytTab = await waitFor(async () => {
+    const g = (await guests()).find((x) => x.url.includes('youtube.com/embed') && !x.loading)
+    if (!g) throw new Error('aún no')
+    const text = await runInGuest(g.id, 'document.body.innerText.trim().slice(0, 160)')
+    if (!text) throw new Error('vacío')
+    return { url: g.url, text }
+  }, 30000)
+  check('Un vídeo de YouTube se ve en una pestaña (sin «Error 153»)', ytTab && !/Error 15\d/.test(ytTab.text), JSON.stringify(ytTab))
+  /* --- Informativo: DRM (Spotify completo) --- */
+  const widevine = await win.evaluate(() =>
+    navigator
+      .requestMediaKeySystemAccess('com.widevine.alpha', [{ initDataTypes: ['cenc'], audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }] }])
+      .then(() => 'disponible')
+      .catch((e) => `no disponible (${e.name})`),
+  )
+  console.log(`INFO  Widevine (DRM para Spotify completo): ${widevine}`)
+
+  /* --- 10. La ventana de la app no se deja llevar a otra web --- */
+  await win.evaluate(() => {
+    location.href = 'https://example.net/'
   })
-  console.log(`INFO  Reproductor de YouTube en la app: ${yt ? JSON.stringify(ytText) : 'no probado'}`)
+  await sleep(1500)
+  check('La app no sale de app://lockin/', win.url().startsWith('app://lockin/'), win.url())
+  check('…y el enlace va al navegador del sistema', !patched || (await opened()).some((u) => u.includes('example.net')))
+
 } catch (error) {
   check('La prueba terminó sin errores', false, String(error?.stack ?? error))
 } finally {

@@ -24,10 +24,10 @@ let mainWindow: BrowserWindow | null = null
 
 /** Carpeta con la app web: dist/ de la raíz al desarrollar; recursos/web en la app empaquetada. */
 function findWebRoot(): string | null {
-  const candidates = [
-    process.env.LOCKIN_WEB_DIR,
-    app.isPackaged ? path.join(process.resourcesPath, 'web') : path.join(__dirname, '..', '..', 'dist'),
-  ]
+  // LOCKIN_WEB_DIR (solo al desarrollar): probar con otra build de la web.
+  const candidates = app.isPackaged
+    ? [path.join(process.resourcesPath, 'web')]
+    : [process.env.LOCKIN_WEB_DIR, path.join(__dirname, '..', '..', 'dist')]
   for (const dir of candidates) {
     if (dir && fs.existsSync(path.join(dir, 'index.html'))) return path.resolve(dir)
   }

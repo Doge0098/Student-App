@@ -46,6 +46,16 @@
         ]
       }
     ],
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "onlyLoadAppFromAsar": true,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "grantFileProtocolExtraPrivileges": false,
+      "enableCookieEncryption": true,
+      "resetAdHocDarwinSignature": true
+    },
     "win": {
       "target": [
         "nsis"
@@ -68,7 +78,9 @@
         "deb"
       ],
       "category": "Education",
-      "maintainer": "LockIn"
-    }
+      "maintainer": "LockIn",
+      "executableName": "lockin"
+    },
+    "publish": null
   }
 }

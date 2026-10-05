@@ -4,7 +4,7 @@
  * - la de las webs (persist:lockin-web): pestañas, ventanas emergentes e inicios de sesión de Google.
  */
 import { app, BrowserWindow, dialog, session, type MediaAccessPermissionRequest, type Session, type WebContents } from 'electron'
-import { cleanUserAgent, decidePermission, findBlockedHost, originOf, WEB_PARTITION } from './policy'
+import { cleanUserAgent, decidePermission, findBlockedHost, originOf, WEB_PARTITION, withAppReferer, YOUTUBE_EMBED_URLS } from './policy'
 import { getBlockedHosts, notifyBlocked } from './state'
 
 export function webSession(): Session {
@@ -49,6 +49,11 @@ function configure(ses: Session, context: 'shell' | 'web'): void {
     const decision = decidePermission(permission, context, origin)
     return decision === 'allow' || (decision === 'ask' && mediaGrants.has(origin))
   })
+
+  // Sin esto el reproductor de YouTube (panel de Música, vídeos en pestañas) muestra «Error 153».
+  ses.webRequest.onBeforeSendHeaders({ urls: YOUTUBE_EMBED_URLS, types: ['mainFrame', 'subFrame'] }, (details, callback) =>
+    callback({ requestHeaders: withAppReferer(details.requestHeaders) }),
+  )
 
   // USB, HID, puertos serie…: ninguna web de estudio los necesita.
   ses.setDevicePermissionHandler(() => false)

@@ -19,6 +19,8 @@ import {
   parseWebUrl,
   resolveAppFile,
   tabShortcut,
+  withAppReferer,
+  APP_REFERER,
   type KeyInput,
 } from './policy'
 
@@ -122,8 +124,12 @@ describe('permisos', () => {
     expect(decidePermission('notifications', 'shell', 'app://lockin')).toBe('allow')
     expect(decidePermission('fullscreen', 'shell', 'app://lockin')).toBe('allow')
     expect(decidePermission('media', 'shell', 'app://lockin')).toBe('deny')
-    // Un iframe de la app (YouTube) no recibe los permisos de la app.
+    // Los reproductores incrustados (YouTube, Spotify) solo piden DRM o pantalla completa; nada más.
     expect(decidePermission('notifications', 'shell', 'https://www.youtube.com')).toBe('deny')
+    expect(decidePermission('media', 'shell', 'https://open.spotify.com')).toBe('deny')
+    expect(decidePermission('mediaKeySystem', 'shell', 'https://open.spotify.com')).toBe('allow')
+    expect(decidePermission('fullscreen', 'shell', 'https://www.youtube.com')).toBe('allow')
+    expect(decidePermission('fullscreen', 'shell', 'file://')).toBe('deny')
   })
 
   it('las webs: cámara y micrófono se preguntan; notificaciones y ubicación no', () => {
@@ -135,6 +141,15 @@ describe('permisos', () => {
     expect(decidePermission('usb', 'web', 'https://example.com')).toBe('deny')
     expect(decidePermission('media', 'web', '')).toBe('deny')
     expect(decidePermission('fullscreen', 'web', 'app://lockin')).toBe('deny')
+  })
+})
+
+describe('identidad ante YouTube', () => {
+  it('añade el Referer de la app solo si falta', () => {
+    expect(withAppReferer({ Accept: '*/*' })).toEqual({ Accept: '*/*', Referer: APP_REFERER })
+    expect(withAppReferer({ Referer: 'https://es.wikipedia.org/' })).toEqual({ Referer: 'https://es.wikipedia.org/' })
+    expect(withAppReferer({ referer: 'https://a.com/' })).toEqual({ referer: 'https://a.com/' })
+    expect(withAppReferer({ Referer: '' }).Referer).toBe(APP_REFERER)
   })
 })
 

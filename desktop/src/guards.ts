@@ -199,7 +199,7 @@ export function guardShell(contents: WebContents): void {
     delete prefs.preloadURL
     delete prefs.enableBlinkFeatures
     delete prefs.additionalArguments
-    Object.assign(prefs, safeWebPreferences())
+    Object.assign(prefs, safeWebPreferences(), { partition: WEB_PARTITION })
     params.partition = WEB_PARTITION
   })
   contents.on('did-attach-webview', (_event, guest) => guardWebContents(guest))

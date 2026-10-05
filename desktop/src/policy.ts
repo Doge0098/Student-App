@@ -182,8 +182,14 @@ const WEB_PERMISSIONS = new Set([
   'top-level-storage-access',
 ])
 
+/** Lo que pueden pedir los reproductores incrustados en la app (YouTube, Spotify): DRM y pantalla completa. */
+const EMBED_PERMISSIONS = new Set(['fullscreen', 'mediaKeySystem', 'storage-access'])
+
 export function decidePermission(permission: string, context: 'shell' | 'web', origin: string): PermissionDecision {
-  if (context === 'shell') return isAppUrl(`${origin}/`) && SHELL_PERMISSIONS.has(permission) ? 'allow' : 'deny'
+  if (context === 'shell') {
+    if (isAppUrl(`${origin}/`)) return SHELL_PERMISSIONS.has(permission) ? 'allow' : 'deny'
+    return isWebUrl(`${origin}/`) && EMBED_PERMISSIONS.has(permission) ? 'allow' : 'deny'
+  }
   if (!isWebUrl(`${origin}/`)) return 'deny'
   if (WEB_PERMISSIONS.has(permission)) return 'allow'
   return permission === 'media' ? 'ask' : 'deny'
@@ -194,6 +200,29 @@ export function originOf(raw: unknown): string {
   const url = parse(raw)
   if (!url || !url.host || !['http:', 'https:', `${APP_SCHEME}:`].includes(url.protocol)) return ''
   return `${url.protocol}//${url.host}`
+}
+
+/* ------------------------------------------------------------------ */
+/* Identidad ante YouTube                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * YouTube exige que su reproductor incrustado sepa qué app lo usa (cabecera Referer). Desde
+ * app://lockin/ (o al abrir un vídeo incrustado como página en una pestaña) Chromium no la manda y
+ * YouTube muestra «Error 153». En apps, YouTube pide «https://<id de la app>».
+ */
+export const APP_REFERER = 'https://app.lockin.desktop/'
+export const YOUTUBE_EMBED_URLS = [
+  'https://www.youtube.com/embed/*',
+  'https://youtube.com/embed/*',
+  'https://m.youtube.com/embed/*',
+  'https://www.youtube-nocookie.com/embed/*',
+]
+
+/** Añade la identidad de LockIn si la petición no lleva Referer (si ya lo lleva, no se toca). */
+export function withAppReferer(headers: Record<string, string>): Record<string, string> {
+  const has = Object.keys(headers).some((k) => k.toLowerCase() === 'referer' && headers[k])
+  return has ? headers : { ...headers, Referer: APP_REFERER }
 }
 
 /* ------------------------------------------------------------------ */
