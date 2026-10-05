@@ -594,60 +594,34 @@ p {
 /* ------------------------------------------------------------------ */
 /* Temporizador                                                        */
 /* ------------------------------------------------------------------ */
-.timer-ring {
-  --ring: var(--accent);
-  position: relative;
-  width: 190px;
-  aspect-ratio: 1;
-  margin: 0 auto;
-}
-
-.timer-ring[data-phase='break'] {
-  --ring: var(--break);
-}
-
-.timer-ring svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.ring-track,
-.ring-progress {
-  fill: none;
-  stroke-width: 8;
-}
-
-.ring-track {
-  stroke: var(--surface-3);
-}
-
-.ring-progress {
-  stroke: var(--ring);
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.3s linear;
-}
-
-.timer-readout {
-  position: absolute;
-  inset: 0;
+.timer-clock-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
+  padding: 8px 0 4px;
 }
 
-.timer-time {
-  font-size: 40px;
+.timer-clock {
+  font-size: 56px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  line-height: 1;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  color: var(--text);
+  transition: color 0.2s;
 }
 
-.timer-label {
-  font-size: 13px;
+.timer-clock[data-state='focus'] {
+  color: var(--accent);
+}
+
+.timer-clock[data-state='break'] {
+  color: var(--break);
+}
+
+.timer-clock[data-state='paused'] {
   color: var(--text-muted);
-  font-weight: 550;
 }
 
 .timer-stats {
@@ -1387,23 +1361,11 @@ div.tab {
 }
 
 /* Temporizador sencillo */
-.stepper {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.stepper .icon-btn {
-  width: 38px;
-  height: 38px;
+.stepper-btn {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 1px solid var(--border);
-}
-
-.stepper-hint {
-  font-size: 12.5px;
-  color: var(--text-muted);
 }
 
 .btn-block {

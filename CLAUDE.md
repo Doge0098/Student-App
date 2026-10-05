@@ -22,7 +22,8 @@ La interfaz está en español.
    Gmail, Keep, Meet, Formularios, Traductor, Académico.
 6. **Inicio de sesión** en las funciones que lo necesiten (Google, Spotify).
 7. **Personalización**: claro/oscuro y colores de iconos y funciones, **solo colores predefinidos**.
-8. **Minimalista y fácil de entender**. Wikipedia se queda.
+8. **Minimalista de verdad y fácil de entender**: nada decorativo que no aporte (p. ej. se quitó el
+   círculo de progreso del temporizador). Wikipedia se queda.
 9. **Tienda de apps de estudio** (VS Code, máquinas virtuales, IA…) y preparada para **app descargable**.
 
 ## Decisiones tomadas
@@ -44,6 +45,9 @@ La interfaz está en español.
 - **Temporizador**: guarda la hora de fin (`endsAt`), no una cuenta atrás, para no desajustarse en
   segundo plano. Sonido con Web Audio + notificación del navegador. La duración se elige con − / +
   (de 5 en 5, mínimo 30); el descanso se elige en el aviso final.
+  Se muestra como **reloj digital `00:00`** (siempre minutos:segundos, p. ej. `90:00`), sin círculo
+  de progreso: el usuario lo pidió así por minimalismo. El estado se indica solo con el color de los
+  dígitos (concentración = color de la función, descanso = verde, pausa = gris).
 - **Tienda de apps**: catálogo en `src/features/store/catalog.ts` (con test). Cada app tiene `webUrl`
   (se abre por el navegador de la app) y/o `downloadUrl` (página oficial). La web no instala programas.
   «Mis apps» (ids en `localStorage`, clave `my-apps`) se muestran en Inicio.

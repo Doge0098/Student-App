@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { clampFocusMinutes, formatClock, timeAgo, todayKey } from './time'
 
 describe('formatClock', () => {
-  it('formatea minutos y horas', () => {
+  it('muestra siempre minutos:segundos, como un reloj digital', () => {
     expect(formatClock(30 * 60_000)).toBe('30:00')
     expect(formatClock(59_001)).toBe('01:00')
-    expect(formatClock(3_725_000)).toBe('1:02:05')
+    expect(formatClock(90 * 60_000)).toBe('90:00')
+    expect(formatClock(3_725_000)).toBe('62:05')
     expect(formatClock(-5)).toBe('00:00')
   })
 })

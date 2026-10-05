@@ -4,13 +4,10 @@ export const BREAK_OPTIONS = [5, 10, 15, 20] as const
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-/** 1500000 → "25:00"; 3725000 → "1:02:05" */
+/** Reloj digital, siempre minutos:segundos: 1500000 → "25:00"; 5400000 → "90:00" */
 export function formatClock(ms: number): string {
   const total = Math.max(0, Math.ceil(ms / 1000))
-  const h = Math.floor(total / 3600)
-  const m = Math.floor((total % 3600) / 60)
-  const s = total % 60
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`
 }
 
 export function clampFocusMinutes(minutes: number): number {
