@@ -1,11 +1,11 @@
-import { ChartColumn, Flame, Minus, Pause, Play, Plus, Square, Target, Timer } from 'lucide-react'
+import { BookOpen, ChartColumn, Coffee, Flame, Minus, Pause, Play, Plus, Square, Target, Timer } from 'lucide-react'
 import { useState } from 'react'
 import { Panel } from '../../components/Panel'
-import { MAX_FOCUS_MINUTES, MIN_FOCUS_MINUTES, clampFocusMinutes, formatClock } from '../../lib/time'
+import { MAX_FOCUS_MINUTES, MIN_FOCUS_MINUTES, clampBreakMinutes, clampFocusMinutes, formatClock } from '../../lib/time'
 import { FocusModeButton } from '../focus/FocusModeButton'
 import { ProgressDialog } from '../progress/ProgressDialog'
 import { useProgress } from '../progress/store'
-import { RoomBadge, RoomLeaveButton, RoomStartButton } from '../room/RoomControls'
+import { RoomBadge, RoomFollowButton, RoomLeaveButton, RoomStartButton } from '../room/RoomControls'
 import { useTasks } from '../tasks/store'
 import { useRemainingMs, useTimer } from './TimerContext'
 import './timer.css'
@@ -100,7 +100,37 @@ export function FocusTimer() {
           <RoomStartButton focusMinutes={minutes} />
         </>
       ) : room ? (
-        <RoomLeaveButton />
+        <>
+          {status === 'finished' && <RoomFollowButton />}
+          <RoomLeaveButton />
+        </>
+      ) : status === 'finished' ? (
+        // Acabó y falta responder «¿descansar o seguir?»: aquí también se puede elegir
+        // (no hay nada que «continuar»), por si el aviso se ha cerrado.
+        phase === 'focus' ? (
+          <>
+            <button type="button" className="btn btn-primary btn-block" onClick={() => timer.startBreak()}>
+              <Coffee size={18} /> Descansar {clampBreakMinutes(settings.breakMinutes)} min
+            </button>
+            <div className="button-row">
+              <button type="button" className="btn" onClick={() => timer.startFocus()}>
+                <BookOpen size={18} /> Seguir
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={timer.stop}>
+                <Square size={16} /> Terminar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <button type="button" className="btn btn-primary btn-block" onClick={() => timer.startFocus()}>
+              <BookOpen size={18} /> Seguir estudiando
+            </button>
+            <button type="button" className="btn btn-link" onClick={timer.stop}>
+              <Square size={14} /> Terminar
+            </button>
+          </>
+        )
       ) : (
         <div className="button-row">
           {status === 'running' ? (

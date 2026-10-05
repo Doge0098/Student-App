@@ -1,5 +1,5 @@
 import { createStore } from '../../hooks/store'
-import { ROOM_HASH_PARAM, roomHash, roomLink, type ActiveRoom, type RoomPayload } from './room'
+import { ROOM_HASH_PARAM, roomHash, roomLink, shareBase, type ActiveRoom, type RoomPayload } from './room'
 
 /** La sala en la que está este navegador (solo se guarda aquí; no hay servidor). */
 export const roomStore = createStore<ActiveRoom | null>('room', null)
@@ -39,8 +39,9 @@ export function clearRoomFromAddress(): void {
   }
 }
 
+/** Enlace para compartir. En la app de escritorio (app://) apunta a la web pública, que todos pueden abrir. */
 export function currentRoomLink(room: RoomPayload): string {
-  return roomLink(room, window.location.href)
+  return roomLink(room, shareBase(window.location.href))
 }
 
 /** Copia texto al portapapeles. Devuelve false si el navegador no lo permite. */

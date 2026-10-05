@@ -194,7 +194,10 @@ interface NoteEditorProps {
 
 const SAVE_DELAY_MS = 500
 
-/** Título + texto. Se guarda solo un momento después de dejar de escribir, al salir del campo y al cerrar. */
+/**
+ * Título + texto. Se guarda solo un momento después de dejar de escribir, al salir del campo, al cerrar la nota
+ * y al recargar o cerrar la pestaña.
+ */
 function NoteEditor({ note, autoFocus, onSubjectChange, onDelete, onBack }: NoteEditorProps) {
   const [title, setTitle] = useState(note.title)
   const [body, setBody] = useState(note.body)
@@ -213,6 +216,28 @@ function NoteEditor({ note, autoFocus, onSubjectChange, onDelete, onBack }: Note
 
   // Lo que quede por guardar se guarda al cerrar la nota.
   useEffect(() => flush, [flush])
+
+  // …y al recargar o cerrar la pestaña (o la app instalada), que no avisan a React ni quitan el foco.
+  useEffect(() => {
+    const onHide = () => flush()
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    window.addEventListener('pagehide', onHide)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', onHide)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [flush])
+
+  // Cambios llegados de fuera (p. ej. la misma nota editada en otra pestaña): se adoptan si aquí no hay nada
+  // sin guardar. Así esta pestaña no pisa luego el texto nuevo con su copia antigua.
+  useEffect(() => {
+    if (pending.current) return
+    setTitle(note.title)
+    setBody(note.body)
+  }, [note.title, note.body])
 
   useEffect(() => {
     if (autoFocus) titleInput.current?.focus()

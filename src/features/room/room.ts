@@ -14,6 +14,16 @@ export const ROOM_HASH_PARAM = 'sala'
 export const ROOM_MAX_MS = 12 * 3_600_000
 export const ROOM_MIN_BREAK = 1
 export const ROOM_MAX_BREAK = 60
+/**
+ * Margen para salas que «aún no han empezado» (el reloj de quien la creó va algo adelantado).
+ * Más allá, el reloj se quedaría parado en 30:00 sin avanzar nunca: el enlace se rechaza.
+ */
+export const ROOM_MAX_EARLY_MS = 10 * 60_000
+/**
+ * Dirección pública de LockIn. Los enlaces de sala apuntan aquí cuando la app no se abre como una
+ * web normal (la de escritorio va por app://), para que cualquiera pueda abrirlos.
+ */
+export const PUBLIC_APP_URL = 'https://doge0098.github.io/Student-App/'
 
 const MIN_START = Date.UTC(2024, 0, 1)
 const MAX_START = Date.UTC(2100, 0, 1)
@@ -48,6 +58,11 @@ export function createRoom(start: number, focusMinutes: number, breakMinutes: nu
   return validateRoom({ v: ROOM_VERSION, s: Math.round(start), f: focusMinutes, b: breakMinutes })
 }
 
+/** ¿Empieza demasiado tarde? (enlace manipulado o reloj muy desajustado). */
+export function roomStartsTooFarAhead(room: RoomPayload, now: number): boolean {
+  return room.s - now > ROOM_MAX_EARLY_MS
+}
+
 export function sameRoom(a: RoomPayload | null, b: RoomPayload | null): boolean {
   return Boolean(a && b && a.s === b.s && a.f === b.f && a.b === b.b)
 }
@@ -80,6 +95,15 @@ export function roomHash(room: RoomPayload): string {
 /** Enlace completo para compartir; `base` es la dirección de la app (se le quita el # que tenga). */
 export function roomLink(room: RoomPayload, base: string): string {
   return base.split('#')[0] + roomHash(room)
+}
+
+/** Dirección desde la que compartir: la actual si es una web (http/https); si no, la pública. */
+export function shareBase(href: string): string {
+  try {
+    return /^https?:$/.test(new URL(href).protocol) ? href : PUBLIC_APP_URL
+  } catch {
+    return PUBLIC_APP_URL
+  }
 }
 
 /**

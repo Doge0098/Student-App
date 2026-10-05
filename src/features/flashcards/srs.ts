@@ -36,7 +36,21 @@ export function endOfDay(ms: number): number {
   return addLocalDays(ms, 1) - 1
 }
 
+/** Días de calendario entre el día de `from` y el de `to` (0 = el mismo día). */
+function calendarDays(from: number, to: number): number {
+  return Math.round((addLocalDays(to, 0) - addLocalDays(from, 0)) / 86_400_000)
+}
+
 const round2 = (n: number) => Math.round(n * 100) / 100
+
+/**
+ * Repaso anticipado: la tarjeta aún no tocaba hoy (p. ej. con «Repasar todas» antes de un examen).
+ * Es solo práctica: si se sabe, sigue en su fecha. Si no, se repetiría el intervalo una y otra vez
+ * (cuatro «Bien» seguidos la misma tarde la mandarían a meses vista).
+ */
+export function isEarlyReview(card: Pick<ReviewState, 'due'>, now: number): boolean {
+  return Number.isFinite(card.due) && card.due > endOfDay(now)
+}
 
 /** Calcula el siguiente repaso de una tarjeta según cómo la ha sabido el estudiante. */
 export function schedule(card: ReviewState, grade: Grade, now: number): ReviewState {
@@ -47,6 +61,9 @@ export function schedule(card: ReviewState, grade: Grade, now: number): ReviewSt
   if (grade === 'again') {
     return { due: now + AGAIN_DELAY_MS, interval: 0, ease: round2(Math.max(MIN_EASE, ease - 0.2)), reps: 0 }
   }
+
+  // Aún no tocaba: no cambia nada (ni la fecha, ni el intervalo, ni la facilidad).
+  if (isEarlyReview(card, now)) return { due: card.due, interval, ease, reps }
 
   // Nueva (o recién fallada): mañana, en 2 días o en 4. Ya aprendida: el intervalo crece con la facilidad.
   const learned = reps > 0 && interval >= 1
@@ -61,8 +78,10 @@ export function schedule(card: ReviewState, grade: Grade, now: number): ReviewSt
 
 /** «10 min», «1 día», «3 días», «2 meses», «1 año»… */
 export function formatWait(state: ReviewState, now: number): string {
-  if (state.interval < 1) return `${Math.max(1, Math.round((state.due - now) / 60_000))} min`
-  const days = state.interval
+  // Si cae otro día, se cuentan los días que faltan de verdad: tras un repaso anticipado no coinciden con el intervalo.
+  const later = state.due > endOfDay(now)
+  if (!later && !(state.interval >= 1)) return `${Math.max(1, Math.round((state.due - now) / 60_000))} min`
+  const days = later ? calendarDays(now, state.due) : state.interval
   if (days < 30) return days === 1 ? '1 día' : `${days} días`
   if (days < 365) {
     const months = Math.round(days / 30)
@@ -97,22 +116,80 @@ export function findDeckByName<T extends Pick<Deck, 'name'>>(decks: T[], name: s
 
 /**
  * Convierte texto pegado en tarjetas: una por línea, «pregunta ; respuesta» o separadas por tabulador
- * (lo que sale al copiar dos columnas de una hoja de cálculo). Se corta en el primer separador.
+ * (lo que sale al copiar dos columnas de una hoja de cálculo). Se corta en el primer «;».
+ * Si hay tabuladores se lee como una hoja de cálculo: una celda entre comillas puede tener varias líneas
+ * y «""» dentro de ella es una comilla. De cada fila se usan las dos primeras columnas.
  */
 export function parseBulk(text: string): { cards: { front: string; back: string }[]; skipped: number } {
+  const rows = text.includes('\t') ? splitTsv(text) : text.split(/\r?\n/).map((line) => [line])
   const cards: { front: string; back: string }[] = []
   let skipped = 0
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.trim()
-    if (!line) continue
-    const sep = raw.includes('\t') ? '\t' : ';'
-    const at = raw.indexOf(sep)
-    const front = at >= 0 ? raw.slice(0, at).trim() : ''
-    const back = at >= 0 ? raw.slice(at + 1).trim() : ''
-    if (front && back) cards.push({ front, back })
+  for (const row of rows) {
+    if (row.every((cell) => !cell.trim())) continue
+    const [front = '', back = ''] = row.length >= 2 ? row : splitAt(row[0], ';')
+    if (front.trim() && back.trim()) cards.push({ front: front.trim(), back: back.trim() })
     else skipped++
   }
   return { cards, skipped }
+}
+
+function splitAt(line: string, sep: string): [string, string] {
+  const at = line.indexOf(sep)
+  return at >= 0 ? [line.slice(0, at), line.slice(at + 1)] : ['', '']
+}
+
+const isCellEnd = (ch: string | undefined) => ch === undefined || ch === '\t' || ch === '\n' || ch === '\r'
+
+/**
+ * Filas y celdas de un texto copiado de una hoja de cálculo (separado por tabuladores).
+ * Una celda que empieza por comillas y se cierra justo antes de un tabulador o de un salto de línea
+ * va entre comillas; si no se cierra así, las comillas son parte del texto.
+ */
+export function splitTsv(text: string): string[][] {
+  const rows: string[][] = []
+  let row: string[] = []
+  let i = 0
+  for (;;) {
+    const quoted = text[i] === '"' ? readQuoted(text, i) : null
+    let cell: string
+    if (quoted) {
+      cell = quoted.value
+      i = quoted.end
+    } else {
+      let end = i
+      while (!isCellEnd(text[end])) end++
+      cell = text.slice(i, end)
+      i = end
+    }
+    row.push(cell)
+    if (i >= text.length) break
+    if (text[i] === '\t') {
+      i++
+      continue
+    }
+    i += text[i] === '\r' && text[i + 1] === '\n' ? 2 : 1
+    rows.push(row)
+    row = []
+    if (i >= text.length) return rows
+  }
+  rows.push(row)
+  return rows
+}
+
+/** Celda entre comillas que empieza en `start`, o null si no se cierra justo antes del final de la celda. */
+function readQuoted(text: string, start: number): { value: string; end: number } | null {
+  let value = ''
+  for (let i = start + 1; i < text.length; i++) {
+    if (text[i] !== '"') {
+      value += text[i]
+    } else if (text[i + 1] === '"') {
+      value += '"'
+      i++
+    } else {
+      return isCellEnd(text[i + 1]) ? { value, end: i + 1 } : null
+    }
+  }
+  return null
 }
 
 /* ------------------------------------------------------------------ */

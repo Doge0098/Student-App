@@ -6,6 +6,7 @@ import {
   answerSession,
   dueCards,
   endOfDay,
+  isEarlyReview,
   plural,
   previewWaits,
   startSession,
@@ -137,6 +138,7 @@ export function StudySession({ deck, cards, all, onGrade, onExit }: StudySession
           ))}
         </div>
       )}
+      {revealed && isEarlyReview(card, now) && <p className="hint flash-early">Aún no te tocaba: si la sabes, sigue en su fecha.</p>}
     </div>
   )
 }

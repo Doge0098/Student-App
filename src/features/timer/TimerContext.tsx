@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useToast } from '../../components/Toast'
 import { useStore } from '../../hooks/store'
-import { usePersistentState } from '../../hooks/usePersistentState'
 import { notify, playChime, primeAudio, requestNotificationPermission } from '../../lib/alerts'
 import type { SubjectId } from '../../lib/subjects'
 import { clampBreakMinutes, clampFocusMinutes, formatClock, todayKey } from '../../lib/time'
@@ -12,6 +11,7 @@ import {
   createRoom as makeRoom,
   joinRoomState,
   readRoomHash,
+  roomStartsTooFarAhead,
   roomView,
   sameRoom,
   sanitizeActiveRoom,
@@ -21,28 +21,22 @@ import {
 } from '../room/room'
 import { clearRoomFromAddress, readFreshRoom, roomStore, showRoomInAddress } from '../room/roomStore'
 import { tasksStore, type Task } from '../tasks/store'
+import {
+  IDLE,
+  finishSoloBlock,
+  normalizeTimer,
+  readFreshTimer,
+  soloStudiedMinutes,
+  timerSettingsStore,
+  timerStore,
+  updateFreshTimer,
+  type TimerPhase,
+  type TimerSettings,
+  type TimerState,
+  type TimerStatus,
+} from './timerStore'
 
-export type TimerPhase = 'idle' | 'focus' | 'break'
-export type TimerStatus = 'running' | 'paused' | 'finished'
-
-interface TimerState {
-  phase: TimerPhase
-  status: TimerStatus
-  durationMs: number
-  /** Momento en que acaba el bloque (solo mientras corre). Así no se desajusta aunque la pestaña esté en segundo plano. */
-  endsAt: number | null
-  /** Tiempo restante guardado al pausar. */
-  remainingMs: number
-  /** Tarea elegida para el bloque («¿En qué vas a trabajar?»). Opcional. */
-  taskId?: string | null
-  /** Asignatura de esa tarea al elegirla, por si se borra la tarea a mitad del bloque. */
-  taskSubject?: SubjectId | null
-}
-
-interface TimerSettings {
-  focusMinutes: number
-  breakMinutes: number
-}
+export type { TimerPhase, TimerStatus } from './timerStore'
 
 interface DayStats {
   date: string
@@ -76,8 +70,6 @@ interface TimerContextValue {
   followRoom: () => void
 }
 
-const IDLE: TimerState = { phase: 'idle', status: 'paused', durationMs: 0, endsAt: null, remainingMs: 0 }
-
 const TimerContext = createContext<TimerContextValue | null>(null)
 /** El tiempo restante va aparte: cambia 4 veces por segundo y así solo se repinta lo que lo muestra. */
 const RemainingContext = createContext(0)
@@ -103,22 +95,14 @@ function idleKeepingTask(s: TimerState): TimerState {
   return { ...IDLE, taskId: s.taskId ?? null, taskSubject: s.taskSubject ?? null }
 }
 
-/** Minutos estudiados de un bloque por su cuenta que aún no ha terminado. */
-function soloStudiedMinutes(s: TimerState, now: number): number {
-  if (s.phase !== 'focus' || s.status === 'finished') return 0
-  const left = s.endsAt !== null ? s.endsAt - now : s.remainingMs
-  return Math.floor((s.durationMs - Math.max(0, left)) / 60000)
-}
-
 type JoinResult = 'joined' | 'same' | 'ended'
 
 export function TimerProvider({ children }: { children: ReactNode }) {
   const toast = useToast()
-  const [solo, setSolo] = usePersistentState<TimerState>('timer', IDLE)
-  const [settings, setSettings] = usePersistentState<TimerSettings>('timer-settings', {
-    focusMinutes: 30,
-    breakMinutes: 5,
-  })
+  // Compartido entre pestañas: todas ven el mismo bloque (empezar, pausar, terminar…).
+  const [rawSolo] = useStore(timerStore)
+  const solo = useMemo(() => normalizeTimer(rawSolo), [rawSolo])
+  const [settings, setSettings] = useStore(timerSettingsStore)
   const [rawRoom] = useStore(roomStore)
   const active = useMemo(() => sanitizeActiveRoom(rawRoom), [rawRoom])
   const inRoom = active !== null
@@ -146,19 +130,21 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   const remainingMs = view.remainingMs
 
   // Bloque propio que llega a cero: suena, avisa y queda esperando la respuesta "¿descansar o seguir?".
+  // Con varias pestañas abiertas solo lo apunta la primera que lo marca como terminado.
   const handledEnd = useRef<number | null>(null)
   useEffect(() => {
     if (inRoom || !soloRunning || soloRemainingMs > 0 || handledEnd.current === solo.endsAt) return
     handledEnd.current = solo.endsAt
-    setSolo((s) => ({ ...s, status: 'finished', endsAt: null, remainingMs: 0 }))
+    const block = finishSoloBlock(solo.endsAt)
+    if (!block) return
     playChime()
-    if (solo.phase === 'focus') {
-      recordStudy(Math.round(solo.durationMs / 60000), blockSubject(solo), 1, solo.endsAt ?? Date.now())
+    if (block.phase === 'focus') {
+      recordStudy(Math.round(block.durationMs / 60000), blockSubject(block), 1, block.endsAt ?? Date.now())
       notify('¡Bloque completado!', '¿Quieres descansar o seguir?')
     } else {
       notify('Se acabó el descanso', '¿Volvemos al estudio?')
     }
-  }, [inRoom, soloRunning, soloRemainingMs, solo, setSolo])
+  }, [inRoom, soloRunning, soloRemainingMs, solo])
 
   /**
    * En una sala: si terminó la fase en la que estaba, suena, avisa y apunta lo estudiado.
@@ -172,7 +158,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       roomStore.set(next)
       playChime()
       if (ended.phase === 'focus') {
-        recordStudy(Math.round(ended.studiedMs / 60000), blockSubject(solo), ended.completed ? 1 : 0, ended.endedAt)
+        recordStudy(Math.round(ended.studiedMs / 60000), blockSubject(readFreshTimer()), ended.completed ? 1 : 0, ended.endedAt)
         notify('¡Bloque completado!', '¿Descansas con la sala o sigues?')
       } else {
         notify('Se acabó el descanso', 'La sala vuelve a estudiar.')
@@ -183,45 +169,51 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       clearRoomFromAddress()
       toast('La sala ha terminado. ¡Buen trabajo!')
     }
-  }, [solo, toast])
+  }, [toast])
 
   useEffect(() => {
     if (inRoom) settleRoom()
   }, [inRoom, now, settleRoom])
 
-  /** Sale de la sala; lo estudiado en el bloque en curso cuenta. Devuelve false si no estaba en ninguna. */
+  /**
+   * Sale de la sala; lo estudiado en el bloque en curso cuenta. Devuelve false si no estaba en ninguna.
+   * Lee lo guardado en el momento: si otra pestaña ya salió (y lo apuntó), aquí no se apunta otra vez.
+   */
   const leaveRoom = useCallback((): boolean => {
-    if (!sanitizeActiveRoom(roomStore.get())) return false
-    settleRoom()
-    const current = sanitizeActiveRoom(roomStore.get())
-    if (current) {
-      const studied = Math.floor(studiedOnLeave(current, Date.now()) / 60000)
-      if (studied > 0) recordStudy(studied, blockSubject(solo), 0)
+    if (!sanitizeActiveRoom(readFreshRoom())) {
+      if (roomStore.get() !== null) roomStore.set(null)
+      return false
     }
+    settleRoom()
+    const current = sanitizeActiveRoom(readFreshRoom())
     roomStore.set(null)
     clearRoomFromAddress()
+    if (current) {
+      const studied = Math.floor(studiedOnLeave(current, Date.now()) / 60000)
+      if (studied > 0) recordStudy(studied, blockSubject(readFreshTimer()), 0)
+    }
     return true
-  }, [settleRoom, solo])
+  }, [settleRoom])
 
   const joinRoom = useCallback(
     (room: RoomPayload): JoinResult => {
-      const current = sanitizeActiveRoom(roomStore.get())
+      const current = sanitizeActiveRoom(readFreshRoom())
       if (current && sameRoom(current.room, room)) return 'same'
       const t = Date.now()
       const next = joinRoomState(room, t)
       if (!next) return 'ended'
       if (current) leaveRoom()
-      else {
-        const studied = soloStudiedMinutes(solo, t)
-        if (studied > 0) recordStudy(studied, blockSubject(solo), 0)
-      }
-      setSolo((s) => ({ ...IDLE, ...pendingTask(s) }))
+      // El bloque propio (el guardado ahora, no el de esta pestaña) se para antes de apuntarlo:
+      // así otra pestaña no puede apuntarlo también.
+      const previous = updateFreshTimer((s) => ({ ...IDLE, ...pendingTask(s) }))
+      const studied = current ? 0 : soloStudiedMinutes(previous, t)
+      if (studied > 0) recordStudy(studied, blockSubject(previous), 0)
       roomStore.set(next)
       showRoomInAddress(room)
       setNow(t)
       return 'joined'
     },
-    [leaveRoom, solo, setSolo],
+    [leaveRoom],
   )
 
   // Abrir un enlace de sala (al cargar o al pegarlo en la barra de direcciones) te une a ella.
@@ -233,7 +225,8 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     const check = () => {
       const parsed = readRoomHash(window.location.hash)
       if (parsed === null) return
-      if (parsed === 'invalid') {
+      // Una sala que empieza dentro de mucho no avanzaría nunca: se trata como un enlace roto.
+      if (parsed === 'invalid' || roomStartsTooFarAhead(parsed, Date.now())) {
         clearRoomFromAddress()
         toast('Ese enlace de sala no funciona. Pide que te lo vuelvan a enviar.')
         return
@@ -249,6 +242,18 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     window.addEventListener('hashchange', check)
     return () => window.removeEventListener('hashchange', check)
   }, [toast])
+
+  // Si sales de la sala (o termina) en otra pestaña, aquí también se quita del enlace: recargar
+  // no debe volver a unirte. Solo con cambios, nunca al cargar: entonces el enlace lo lee check().
+  const room = active?.room ?? null
+  const prevRoom = useRef<RoomPayload | null | undefined>(undefined)
+  useEffect(() => {
+    const prev = prevRoom.current
+    prevRoom.current = room
+    if (prev === undefined || (!prev && !room) || sameRoom(prev, room)) return
+    if (!room) clearRoomFromAddress()
+    else if (readRoomHash(window.location.hash) !== null) showRoomInAddress(room)
+  }, [room])
 
   // Al entrar por enlace no ha habido clic: el sonido y el permiso de avisos se piden con el primer toque.
   useEffect(() => {
@@ -285,7 +290,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       const t = Date.now()
       const durationMs = minutes * 60000
       setNow(t)
-      setSolo((s) => ({
+      updateFreshTimer((s) => ({
         phase,
         status: 'running',
         durationMs,
@@ -295,7 +300,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
         ...(phase === 'focus' ? pendingTask(s) : { taskId: s.taskId ?? null, taskSubject: s.taskSubject ?? null }),
       }))
     },
-    [leaveRoom, setSolo],
+    [leaveRoom],
   )
 
   const startFocus = useCallback(
@@ -311,36 +316,34 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   // En una sala no se puede pausar: el reloj es el mismo para todos.
   const pause = useCallback(() => {
     if (roomStore.get()) return
-    setSolo((s) =>
+    updateFreshTimer((s) =>
       s.status === 'running' && s.endsAt !== null
         ? { ...s, status: 'paused', remainingMs: Math.max(0, s.endsAt - Date.now()), endsAt: null }
         : s,
     )
-  }, [setSolo])
+  }, [])
 
   const resume = useCallback(() => {
     if (roomStore.get()) return
     const t = Date.now()
     setNow(t)
-    setSolo((s) => (s.status === 'paused' && s.phase !== 'idle' ? { ...s, status: 'running', endsAt: t + s.remainingMs } : s))
-  }, [setSolo])
+    updateFreshTimer((s) => (s.status === 'paused' && s.phase !== 'idle' ? { ...s, status: 'running', endsAt: t + s.remainingMs } : s))
+  }, [])
 
   const stop = useCallback(() => {
+    const leftRoom = leaveRoom()
+    // Primero se para (con lo guardado ahora, no lo de esta pestaña) y luego se apunta:
+    // si otra pestaña ya lo paró o lo apuntó, aquí no cuenta otra vez.
+    const previous = updateFreshTimer(idleKeepingTask)
     // Lo estudiado antes de parar también cuenta en el resumen del día.
-    if (!leaveRoom()) {
-      const studied = soloStudiedMinutes(solo, Date.now())
-      if (studied > 0) recordStudy(studied, blockSubject(solo), 0)
-    }
-    setSolo(idleKeepingTask)
-  }, [leaveRoom, solo, setSolo])
+    const studied = leftRoom ? 0 : soloStudiedMinutes(previous, Date.now())
+    if (studied > 0) recordStudy(studied, blockSubject(previous), 0)
+  }, [leaveRoom])
 
-  const setTaskId = useCallback(
-    (id: string | null) => {
-      const task = findTask(id)
-      setSolo((s) => ({ ...s, taskId: task ? task.id : null, taskSubject: task ? task.subject : null }))
-    },
-    [setSolo],
-  )
+  const setTaskId = useCallback((id: string | null) => {
+    const task = findTask(id)
+    updateFreshTimer((s) => ({ ...s, taskId: task ? task.id : null, taskSubject: task ? task.subject : null }))
+  }, [])
 
   const createRoom = useCallback(
     (focusMinutes: number, breakMinutes: number) => {
@@ -379,7 +382,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
     [dateKey, todayProgress],
   )
 
-  const room = active?.room ?? null
   const taskId = solo.taskId ?? null
   const value = useMemo<TimerContextValue>(
     () => ({

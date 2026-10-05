@@ -1,7 +1,8 @@
 import { createStore, useStore } from '../../hooks/store'
 import type { SubjectId } from '../../lib/subjects'
 import { uid } from '../../lib/text'
-import { findDeckByName, schedule, type Grade } from './srs'
+import { cleanList, cleanSubject, finiteOr, isRecord, sameFields, withClean } from '../tasks/cleanStore'
+import { START_EASE, findDeckByName, schedule, type Grade } from './srs'
 
 export interface Deck {
   id: string
@@ -30,28 +31,47 @@ export interface FlashcardsData {
   cards: Card[]
 }
 
-export const flashcardsStore = createStore<FlashcardsData>('flashcards', { decks: [], cards: [] })
-
-export function newCard(deckId: string, front: string, back: string): Card {
-  return { id: uid(), deckId, front: front.trim(), back: back.trim(), due: Date.now(), interval: 0, ease: 2.5, reps: 0 }
+function cleanDeck(item: unknown): Deck | null {
+  if (!isRecord(item) || typeof item.id !== 'string' || typeof item.name !== 'string') return null
+  const fixed = { subject: cleanSubject(item.subject), createdAt: finiteOr(item.createdAt, 0) }
+  return sameFields(item, fixed) ? (item as unknown as Deck) : ({ ...item, ...fixed } as Deck)
 }
 
-/** Datos editados a mano o de otra versión: nunca rompen la vista. */
-function clean(data: FlashcardsData | null | undefined): FlashcardsData {
-  return {
-    decks: Array.isArray(data?.decks) ? data.decks : [],
-    cards: Array.isArray(data?.cards) ? data.cards : [],
+function cleanCard(item: unknown): Card | null {
+  if (!isRecord(item)) return null
+  const { id, deckId, front, back } = item
+  if (typeof id !== 'string' || typeof deckId !== 'string' || typeof front !== 'string' || typeof back !== 'string') return null
+  // Sin fecha de repaso válida: toca ya.
+  const fixed = {
+    due: finiteOr(item.due, 0),
+    interval: Math.max(0, finiteOr(item.interval, 0)),
+    ease: finiteOr(item.ease, START_EASE),
+    reps: Math.max(0, finiteOr(item.reps, 0)),
   }
+  return sameFields(item, fixed) ? (item as unknown as Card) : ({ ...item, ...fixed } as Card)
+}
+
+/** Mazos y tarjetas guardados, limpios. Datos editados a mano o de otra versión nunca rompen la vista. */
+export function cleanFlashcards(value: unknown): FlashcardsData {
+  const data = isRecord(value) ? value : {}
+  const decks = cleanList(data.decks, cleanDeck)
+  const cards = cleanList(data.cards, cleanCard)
+  return decks === data.decks && cards === data.cards ? (data as unknown as FlashcardsData) : { ...data, decks, cards }
+}
+
+export const flashcardsStore = withClean(createStore<FlashcardsData>('flashcards', { decks: [], cards: [] }), cleanFlashcards)
+
+export function newCard(deckId: string, front: string, back: string): Card {
+  return { id: uid(), deckId, front: front.trim(), back: back.trim(), due: Date.now(), interval: 0, ease: START_EASE, reps: 0 }
 }
 
 export function useFlashcards() {
-  const [stored, setStored] = useStore(flashcardsStore)
-  const data = clean(stored)
-  const setData = setStored
-  const change = (fn: (prev: FlashcardsData) => FlashcardsData) => setStored((prev) => fn(clean(prev)))
+  const [data, setData] = useStore(flashcardsStore)
+  const change = (fn: (prev: FlashcardsData) => FlashcardsData) => setData(fn)
 
   return {
-    ...data,
+    decks: data.decks,
+    cards: data.cards,
     setData,
     /**
      * Añade tarjetas a un mazo (lo crea si no existe un mazo con ese nombre).
@@ -67,7 +87,7 @@ export function useFlashcards() {
     },
     /** Crea un mazo vacío; si ya hay uno con ese nombre, devuelve ese. */
     createDeck: (name: string, subject: SubjectId): Deck => {
-      const existing = findDeckByName(clean(flashcardsStore.get()).decks, name)
+      const existing = findDeckByName(flashcardsStore.get().decks, name)
       if (existing) return existing
       const deck: Deck = { id: uid(), name: name.trim() || 'Mis tarjetas', subject, createdAt: Date.now() }
       change((prev) => ({ ...prev, decks: [...prev.decks, deck] }))

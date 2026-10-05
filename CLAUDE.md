@@ -163,6 +163,18 @@ desktop/          versión de escritorio con Electron (su propio package.json)
 - `npm run lint` — oxlint
 - `npm run build` — comprobación de tipos y build
 
+## Dónde lo dejamos (5 oct 2026)
+
+- Fase 4 integrada, probada y publicada. Después se hizo una revisión a fondo: 37 fallos confirmados.
+- Se paró a mitad del arreglo (el usuario se quedó sin uso). Lista completa y estado en
+  **`docs/revision-fase4.md`**: ya arreglados los de organización y casi todos los de concentración;
+  faltan navegador/modos, IA, escritorio y transversal. Lo más urgente: modo Estricto con pestañas
+  abiertas antes del bloque (strict-1), copia de datos dañada (backup-1), «Borrar todo» que no borra
+  la clave de IA y Escape cerrando el aviso «¿descansar o seguir?» (Modal.tsx).
+- Al retomar: arreglar los pendientes por áreas (mismos dueños de archivos que en el documento),
+  con tests; luego `npx tsc -b`, `npm run lint`, `npm test`, `npm run build`, prueba en Chromium y,
+  para escritorio, `npm run desktop:smoke` con xvfb-run.
+
 ## Estado y próximos pasos
 
 - [x] Fase 1 (MVP web): temporizador, aviso "¿descansar o seguir?", tareas, música (YouTube/Spotify),

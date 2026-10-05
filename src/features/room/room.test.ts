@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  PUBLIC_APP_URL,
+  ROOM_MAX_EARLY_MS,
   ROOM_MAX_MS,
   ackRoomState,
   createRoom,
@@ -12,10 +14,12 @@ import {
   roomHash,
   roomLink,
   roomPhaseAt,
+  roomStartsTooFarAhead,
   roomView,
   sameRoom,
   sanitizeActiveRoom,
   settleRoomState,
+  shareBase,
   studiedOnLeave,
   validateRoom,
   type RoomPayload,
@@ -39,6 +43,27 @@ describe('enlace de la sala', () => {
     const link = roomLink(ROOM, 'https://ejemplo.github.io/lockin/?x=1#viejo')
     expect(link).toBe(`https://ejemplo.github.io/lockin/?x=1${roomHash(ROOM)}`)
     expect(readRoomHash(new URL(link).hash)).toEqual(ROOM)
+  })
+
+  it('fuera de una web normal (escritorio, app://) el enlace apunta a la web pública', () => {
+    expect(PUBLIC_APP_URL).toMatch(/^https:\/\/.+\/$/)
+    expect(shareBase('https://ejemplo.github.io/lockin/#sala=x')).toBe('https://ejemplo.github.io/lockin/#sala=x')
+    expect(shareBase('http://localhost:5173/')).toBe('http://localhost:5173/')
+    expect(shareBase('app://lockin/index.html#sala=x')).toBe(PUBLIC_APP_URL)
+    expect(shareBase('file:///C:/LockIn/index.html')).toBe(PUBLIC_APP_URL)
+    expect(shareBase('no es una dirección')).toBe(PUBLIC_APP_URL)
+    const link = roomLink(ROOM, shareBase('app://lockin/index.html'))
+    expect(link).toBe(`${PUBLIC_APP_URL}${roomHash(ROOM)}`)
+    expect(readRoomHash(new URL(link).hash)).toEqual(ROOM)
+  })
+
+  it('una sala que empieza dentro de mucho se rechaza; con un reloj algo adelantado, no', () => {
+    expect(roomStartsTooFarAhead(ROOM, START)).toBe(false)
+    expect(roomStartsTooFarAhead(ROOM, START + 3 * 3_600_000)).toBe(false) // ya empezó
+    expect(roomStartsTooFarAhead(ROOM, START - 3 * MIN)).toBe(false) // reloj de quien la creó algo adelantado
+    expect(roomStartsTooFarAhead(ROOM, START - ROOM_MAX_EARLY_MS)).toBe(false)
+    expect(roomStartsTooFarAhead(ROOM, START - ROOM_MAX_EARLY_MS - 1)).toBe(true)
+    expect(roomStartsTooFarAhead({ ...ROOM, s: Date.UTC(2099, 0, 1) }, START)).toBe(true)
   })
 
   it('rechaza enlaces rotos o manipulados', () => {

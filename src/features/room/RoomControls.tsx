@@ -1,4 +1,4 @@
-import { Link2, LogOut, Users } from 'lucide-react'
+import { BookOpen, Coffee, Link2, LogOut, Users } from 'lucide-react'
 import { useState } from 'react'
 import { Modal } from '../../components/Modal'
 import { useToast } from '../../components/Toast'
@@ -38,6 +38,17 @@ export function RoomLeaveButton() {
   return (
     <button type="button" className="btn btn-block" onClick={stop}>
       <LogOut size={16} /> Salir de la sala
+    </button>
+  )
+}
+
+/** Al acabar una fase de la sala (por si el aviso se ha cerrado): pasar a lo que esté haciendo la sala. */
+export function RoomFollowButton() {
+  const { phase, followRoom } = useTimer()
+  return (
+    <button type="button" className="btn btn-primary btn-block" onClick={followRoom}>
+      {phase === 'focus' ? <Coffee size={18} /> : <BookOpen size={18} />}
+      {phase === 'focus' ? 'Descansar con la sala' : 'Seguir con la sala'}
     </button>
   )
 }

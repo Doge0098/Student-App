@@ -9,10 +9,12 @@ import {
   endOfDay,
   findDeckByName,
   formatWait,
+  isEarlyReview,
   parseBulk,
   plural,
   previewWaits,
   schedule,
+  splitTsv,
   startSession,
   tallyGrades,
   type ReviewState,
@@ -73,6 +75,43 @@ describe('schedule', () => {
   it('aguanta datos rotos', () => {
     const broken = { due: now, interval: Number.NaN, ease: Number.NaN, reps: Number.NaN } as ReviewState
     expect(schedule(broken, 'good', now)).toEqual({ due: midnight(2026, 9, 7), interval: 2, ease: 2.5, reps: 1 })
+  })
+})
+
+describe('repaso anticipado («Repasar todas»)', () => {
+  const learned: ReviewState = { due: midnight(2026, 9, 7), interval: 2, ease: 2.5, reps: 1 }
+
+  it('solo cuenta como anticipado si aún no tocaba hoy', () => {
+    expect(isEarlyReview(learned, now)).toBe(true)
+    expect(isEarlyReview({ ...learned, due: now + AGAIN_DELAY_MS }, now)).toBe(false)
+    expect(isEarlyReview({ ...learned, due: midnight(2026, 9, 5) }, now)).toBe(false)
+  })
+
+  it('si se sabe, la tarjeta sigue en su fecha: no se adelanta ni se aleja', () => {
+    for (const grade of ['hard', 'good', 'easy'] as const) expect(schedule(learned, grade, now)).toEqual(learned)
+  })
+
+  it('cuatro «Bien» seguidos la misma tarde no la mandan a meses vista', () => {
+    // Nueva, «Bien» → 2 días. Después, «Repasar todas» cada 10 minutos.
+    let card = schedule(fresh, 'good', now)
+    for (let i = 1; i <= 4; i++) card = schedule(card, 'good', now + i * AGAIN_DELAY_MS)
+    expect(card).toEqual({ due: midnight(2026, 9, 7), interval: 2, ease: 2.5, reps: 1 })
+  })
+
+  it('«Otra vez» sí cuenta: vuelve a salir en 10 minutos', () => {
+    expect(schedule(learned, 'again', now)).toEqual({ due: now + AGAIN_DELAY_MS, interval: 0, ease: 2.3, reps: 0 })
+  })
+
+  it('el día que toca, sigue creciendo como siempre', () => {
+    const later = midnight(2026, 9, 7) + 9 * 3_600_000
+    expect(schedule(learned, 'good', later)).toEqual({ due: midnight(2026, 9, 12), interval: 5, ease: 2.5, reps: 2 })
+  })
+
+  it('lo que pone debajo de cada botón es lo que pasará', () => {
+    expect(previewWaits(learned, now)).toEqual({ again: '10 min', hard: '2 días', good: '2 días', easy: '2 días' })
+    // Si faltaba 1 día, dice 1 día (no el intervalo que tenía).
+    const tomorrow = { ...learned, due: midnight(2026, 9, 6) }
+    expect(previewWaits(tomorrow, now)).toEqual({ again: '10 min', hard: '1 día', good: '1 día', easy: '1 día' })
   })
 })
 
@@ -137,6 +176,63 @@ describe('parseBulk', () => {
 
   it('texto vacío', () => {
     expect(parseBulk('  \n\n')).toEqual({ cards: [], skipped: 0 })
+  })
+
+  it('copiado de una hoja de cálculo: celdas de varias líneas entre comillas', () => {
+    const text = 'Fórmula del agua\tH2O\r\nPartes de la célula\t"Núcleo\nCitoplasma\nMembrana"\r\nCapital de Italia\tRoma\r\n'
+    expect(parseBulk(text)).toEqual({
+      cards: [
+        { front: 'Fórmula del agua', back: 'H2O' },
+        { front: 'Partes de la célula', back: 'Núcleo\nCitoplasma\nMembrana' },
+        { front: 'Capital de Italia', back: 'Roma' },
+      ],
+      skipped: 0,
+    })
+  })
+
+  it('«""» dentro de una celda entre comillas es una comilla', () => {
+    expect(parseBulk('Cita\t"""Veni, vidi, vici"""\n"Dijo ""hola""\ny se fue"\tFrase').cards).toEqual([
+      { front: 'Cita', back: '"Veni, vidi, vici"' },
+      { front: 'Dijo "hola"\ny se fue', back: 'Frase' },
+    ])
+  })
+
+  it('unas comillas que no cierran una celda son parte del texto', () => {
+    expect(parseBulk('"to be" o no\tser\n"Sin cerrar\tabierta\nsiguiente\tfila').cards).toEqual([
+      { front: '"to be" o no', back: 'ser' },
+      { front: '"Sin cerrar', back: 'abierta' },
+      { front: 'siguiente', back: 'fila' },
+    ])
+  })
+
+  it('de cada fila se usan las dos primeras columnas', () => {
+    expect(parseBulk('to be\tser\tI am a student\nto go\tir\t').cards).toEqual([
+      { front: 'to be', back: 'ser' },
+      { front: 'to go', back: 'ir' },
+    ])
+  })
+
+  it('con tabuladores, las filas sin tabulador siguen valiendo con «;»', () => {
+    expect(parseBulk('to be\tser\nH2O ; Agua\nsolo una columna\n\t\n')).toEqual({
+      cards: [
+        { front: 'to be', back: 'ser' },
+        { front: 'H2O', back: 'Agua' },
+      ],
+      skipped: 1,
+    })
+  })
+})
+
+describe('splitTsv', () => {
+  it('separa filas y celdas como una hoja de cálculo', () => {
+    expect(splitTsv('a\tb\r\nc\t"d\r\ne"\n\tf')).toEqual([
+      ['a', 'b'],
+      ['c', 'd\r\ne'],
+      ['', 'f'],
+    ])
+    expect(splitTsv('a\t')).toEqual([['a', '']])
+    expect(splitTsv('a\tb\n')).toEqual([['a', 'b']])
+    expect(splitTsv('""\t"x"')).toEqual([['', 'x']])
   })
 })
 

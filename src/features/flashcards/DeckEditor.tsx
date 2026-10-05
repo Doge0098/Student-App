@@ -29,12 +29,19 @@ export function DeckEditor({ deck, cards, onBack, onStudy }: DeckEditorProps) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const frontInput = useRef<HTMLInputElement>(null)
   const backInput = useRef<HTMLInputElement>(null)
+  /** Escape deja el nombre como estaba: el blur que viene detrás no debe guardarlo. */
+  const cancelRename = useRef(false)
 
   const now = useNow()
   const due = dueCards(cards, now).length
   const parsed = parseBulk(bulk)
 
   const rename = () => {
+    if (cancelRename.current) {
+      cancelRename.current = false
+      setName(deck.name)
+      return
+    }
     const value = name.trim()
     if (!value || value === deck.name) {
       setName(deck.name)
@@ -102,10 +109,14 @@ export function DeckEditor({ deck, cards, onBack, onStudy }: DeckEditorProps) {
           className="flash-deck-title"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onFocus={() => {
+            cancelRename.current = false
+          }}
           onBlur={rename}
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur()
             if (e.key === 'Escape') {
+              cancelRename.current = true
               setName(deck.name)
               e.currentTarget.blur()
             }
@@ -273,15 +284,8 @@ function CardEditRow({ card, onSave, onCancel }: CardEditRowProps) {
           if (e.key === 'Escape') onCancel()
         }}
       >
-        <input
-          type="text"
-          value={front}
-          onChange={(e) => setFront(e.target.value)}
-          aria-label="Pregunta"
-          maxLength={500}
-          autoFocus
-        />
-        <input type="text" value={back} onChange={(e) => setBack(e.target.value)} aria-label="Respuesta" maxLength={1000} />
+        <CardField value={front} onChange={setFront} label="Pregunta" maxLength={500} autoFocus />
+        <CardField value={back} onChange={setBack} label="Respuesta" maxLength={1000} />
         <div className="flash-card-actions">
           <button type="submit" className="icon-btn" aria-label="Guardar" title="Guardar" disabled={!valid}>
             <Check size={15} />
@@ -292,5 +296,31 @@ function CardEditRow({ card, onSave, onCancel }: CardEditRowProps) {
         </div>
       </form>
     </li>
+  )
+}
+
+interface CardFieldProps {
+  value: string
+  onChange: (value: string) => void
+  label: string
+  maxLength: number
+  autoFocus?: boolean
+}
+
+/** Una línea, o varias si la tarjeta ya las tenía (p. ej. pegada de una hoja de cálculo): un campo de una línea las juntaría. */
+function CardField({ value, onChange, label, maxLength, autoFocus }: CardFieldProps) {
+  const [multiline] = useState(() => value.includes('\n'))
+  if (!multiline) {
+    return <input type="text" value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} maxLength={maxLength} autoFocus={autoFocus} />
+  }
+  return (
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={label}
+      maxLength={maxLength}
+      autoFocus={autoFocus}
+      rows={Math.min(5, value.split('\n').length)}
+    />
   )
 }

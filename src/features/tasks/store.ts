@@ -1,6 +1,7 @@
 import { createStore, useStore } from '../../hooks/store'
 import { detectSubject, type SubjectId } from '../../lib/subjects'
 import { uid } from '../../lib/text'
+import { cleanList, cleanSubject, finiteOr, isRecord, sameFields, withClean } from './cleanStore'
 
 export interface Task {
   id: string
@@ -14,8 +15,28 @@ export interface Task {
   kind?: 'tarea' | 'examen'
 }
 
+function cleanTask(item: unknown): Task | null {
+  if (!isRecord(item) || typeof item.id !== 'string' || typeof item.text !== 'string') return null
+  const fixed = {
+    done: item.done === true,
+    subject: cleanSubject(item.subject),
+    createdAt: finiteOr(item.createdAt, 0),
+    due: typeof item.due === 'string' ? item.due : undefined,
+    kind: item.kind === 'tarea' || item.kind === 'examen' ? item.kind : undefined,
+  }
+  return sameFields(item, fixed) ? (item as unknown as Task) : ({ ...item, ...fixed } as Task)
+}
+
+/**
+ * Tareas guardadas, limpias: sin lo que no es una tarea y con la asignatura «General» si no se conoce.
+ * Datos editados a mano o de otra versión nunca rompen la app.
+ */
+export function cleanTasks(value: unknown): Task[] {
+  return cleanList(value, cleanTask)
+}
+
 /** Misma clave que antes: las tareas guardadas se conservan. */
-export const tasksStore = createStore<Task[]>('tasks', [])
+export const tasksStore = withClean(createStore<Task[]>('tasks', []), cleanTasks)
 
 export function useTasks() {
   const [tasks, setTasks] = useStore(tasksStore)
