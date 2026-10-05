@@ -105,7 +105,8 @@ src/
     Al volver, se recargan los reproductores/pestañas que usan esa cuenta.
   - Personalización: interruptor claro/oscuro (+ automático), color principal y color de cada función
     (temporizador, tareas, navegador, música) elegidos de una **paleta de colores predefinidos**
-    (nada de selector RGB). Paleta en `src/lib/colors.ts`; cada panel lleva `data-accent` y redefine
+    (nada de selector RGB). Color principal por defecto: **azul cian** (`cian`: #0079b8 claro /
+    #29c5f6 oscuro), también en el icono y el manifest. Paleta en `src/lib/colors.ts`; cada panel lleva `data-accent` y redefine
     `--accent` (ver `styles.css`). Cuentas en `src/features/accounts/`.
 - [x] Fase 3 (el usuario prefiere seguir mejorando la web antes del escritorio):
   - Más minimalista: un solo botón de ajustes, temporizador con − / +, tareas sin filtros, música

@@ -4,6 +4,7 @@
  * elegidas para que el texto sobre ellas se lea bien en ambos.
  */
 export const COLORS = {
+  cian: { label: 'Azul cian', light: '#0079b8', dark: '#29c5f6' },
   indigo: { label: 'Índigo', light: '#5b5bd6', dark: '#8d8eff' },
   azul: { label: 'Azul', light: '#2563eb', dark: '#6ea8ff' },
   turquesa: { label: 'Turquesa', light: '#0e7c86', dark: '#4fd1c5' },
@@ -19,7 +20,7 @@ export type ColorId = keyof typeof COLORS
 
 export const COLOR_IDS = Object.keys(COLORS) as ColorId[]
 
-export const DEFAULT_COLOR: ColorId = 'indigo'
+export const DEFAULT_COLOR: ColorId = 'cian'
 
 export function isColorId(value: unknown): value is ColorId {
   return typeof value === 'string' && value in COLORS
