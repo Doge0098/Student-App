@@ -23,6 +23,7 @@ import {
   type SearchEngineId,
 } from '../../lib/web'
 import { platform } from '../../platform'
+import { readRoomHash } from '../room/room'
 import { useAccounts } from '../accounts/AccountsContext'
 import { LoginButton } from '../accounts/LoginButton'
 import { useMusic } from '../music/MusicContext'
@@ -36,7 +37,7 @@ import { DEFAULT_MY_APPS, type StoreApp } from '../store/catalog'
 import { BrowserFrame } from './BrowserFrame'
 import { BrowserHome } from './BrowserHome'
 import { blockedSites, checkSite, timerFlags, type GuardContext, type GuardVerdict } from './guard'
-import { navigateTab, retitleHistory } from './navigation'
+import { canRecordNavigation, navigateTab, retitleHistory } from './navigation'
 import { openAllMessage, planOpenAll } from './openAll'
 import { SiteIcon } from './SiteIcon'
 import type { BrowserTab, HistoryItem } from './types'
@@ -112,6 +113,24 @@ export function StudyBrowser() {
   const blockedKey = blockedSites(guard).join(' ')
   useEffect(() => {
     platform.setBlockedSites(blockedKey ? blockedKey.split(' ') : [])
+  }, [blockedKey])
+
+  // Al empezar un bloque en modo Estricto, las pestañas de distracciones que ya estaban abiertas se cierran.
+  const guardRef = useRef(guard)
+  useEffect(() => {
+    guardRef.current = guard
+  })
+  useEffect(() => {
+    if (!blockedKey) return
+    const blocked = (t: BrowserTab) => {
+      const u = parseUrl(t.url)
+      return u !== null && checkSite(u, guardRef.current).action === 'block'
+    }
+    const closing = tabs.filter(blocked)
+    if (closing.length === 0) return
+    setTabs((prev) => prev.filter((t) => !blocked(t)))
+    toast('He cerrado las distracciones abiertas hasta el descanso (modo Estricto).')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockedKey])
 
   useEffect(
@@ -202,12 +221,19 @@ export function StudyBrowser() {
     if (parseYouTube(url) || url.hostname.endsWith('vimeo.com')) improveTitle(url)
   }
 
-  const open = (raw: string, options: { record?: boolean } = {}) => {
+  const open = (raw: string, options: { record?: boolean; fromPage?: boolean } = {}) => {
     const url = resolveInput(raw, engine)
     if (!url) return
     const shouldRecord = options.record ?? true
 
-    if (isMusicUrl(url) && music.play(url.href)) {
+    // Escritorio: un enlace de sala de LockIn une a la sala en vez de abrirse como una web más.
+    if (platform.isDesktop && url.hash.includes('sala=') && readRoomHash(url.hash) !== null) {
+      window.location.hash = url.hash
+      return
+    }
+
+    // Una web no puede cambiar la música del estudiante: solo lo que él mismo abre.
+    if (!options.fromPage && isMusicUrl(url) && music.play(url.href)) {
       toast('Suena en el panel de Música 🎧')
       return
     }
@@ -226,7 +252,7 @@ export function StudyBrowser() {
   // pasando por los mismos avisos de distracciones y el mismo historial que la barra de direcciones.
   const openRef = useRef<(raw: string) => void>(() => {})
   useEffect(() => {
-    openRef.current = (raw) => open(raw)
+    openRef.current = (raw) => open(raw, { fromPage: true })
   })
   useEffect(() => platform.onOpenTab((url) => openRef.current(url)), [])
 
@@ -289,20 +315,31 @@ export function StudyBrowser() {
    * Solo en escritorio: el estudiante ha pulsado un enlace dentro de una pestaña (o la página ha
    * cambiado de título). Se actualiza la pestaña y se guarda la página real en el historial.
    */
+  // Una página no puede llenar el historial: como mucho una entrada nueva por pestaña cada pocos segundos.
+  const lastRecorded = useRef(new Map<string, number>())
   const handleNavigate = (tabId: string, rawUrl: string, rawTitle: string) => {
     const tab = tabs.find((t) => t.id === tabId)
     const nav = tab ? navigateTab(tab, rawUrl, rawTitle) : null
     if (!tab || !nav) return
-    setTabs((prev) => prev.map((t) => (t.id === tabId ? nav.tab : t)))
 
     const verdict = checkSite(nav.url, guard)
+    if (verdict.action === 'block') {
+      // Modo Estricto: ni se guarda ni se deja ver. Vuelve a la página anterior si esa es válida; si no, se cierra.
+      const back = parseUrl(tab.src)
+      if (back && checkSite(back, guard).action !== 'block') reloadTab(tabId)
+      else closeTab(tabId)
+      toast(`${verdict.label} está bloqueada hasta el descanso (modo Estricto).`)
+      return
+    }
+    setTabs((prev) => prev.map((t) => (t.id === tabId ? nav.tab : t)))
+
     if (verdict.kind === 'distraction') {
       // No se guarda en el historial; si ahora no toca, se le recuerda.
       if (!nav.samePage && verdict.action !== 'allow') toast(`Ojo: ${verdict.label} es una distracción.`)
       return
     }
     if (nav.samePage) setHistory((prev) => retitleHistory(prev, nav.url, nav.title, tab.title))
-    else record(nav.url, nav.title)
+    else if (canRecordNavigation(lastRecorded.current, tabId, Date.now())) record(nav.url, nav.title)
   }
 
   // El aviso de navegación llega desde la vista de escritorio, que puede guardar la función: siempre la última.

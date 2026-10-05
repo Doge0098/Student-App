@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { pageKey } from '../../lib/web'
-import { navigateTab, retitleHistory } from './navigation'
+import { canRecordNavigation, navigateTab, retitleHistory } from './navigation'
 import type { BrowserTab, HistoryItem } from './types'
 
 const start = 'https://es.wikipedia.org/wiki/Roma'
@@ -70,5 +70,28 @@ describe('retitleHistory', () => {
   it('no toca otras páginas', () => {
     const other = item({ id: 'h2', key: 'https://otra.com', url: 'https://otra.com/' })
     expect(retitleHistory([other], url, 'Nuevo', 'Vídeo de YouTube')[0]).toBe(other)
+  })
+})
+
+describe('navigateTab con vídeos (versión embed)', () => {
+  it('que la pestaña cargue su propia dirección embed no es una página nueva', () => {
+    const watch = 'https://www.youtube.com/watch?v=jfKfPfyJRdk'
+    const embed = 'https://www.youtube.com/embed/jfKfPfyJRdk'
+    const tab = { id: 't', key: pageKey(new URL(watch)), url: watch, src: embed, title: 'Vídeo de YouTube', reloads: 0 } as BrowserTab
+    expect(navigateTab(tab, embed, 'Vídeo de YouTube')).toBeNull()
+    const nav = navigateTab(tab, embed, 'lofi hip hop radio')
+    expect(nav?.samePage).toBe(true)
+    expect(nav?.tab.key).toBe(tab.key)
+    expect(nav?.url.href).toBe(watch)
+  })
+})
+
+describe('canRecordNavigation', () => {
+  it('una pestaña no puede llenar el historial: una entrada nueva cada pocos segundos', () => {
+    const last = new Map<string, number>()
+    expect(canRecordNavigation(last, 'a', 1000)).toBe(true)
+    expect(canRecordNavigation(last, 'a', 1500)).toBe(false)
+    expect(canRecordNavigation(last, 'b', 1500)).toBe(true)
+    expect(canRecordNavigation(last, 'a', 4100)).toBe(true)
   })
 })

@@ -12,6 +12,7 @@ export function uid(): string {
 }
 
 export function hostMatches(host: string, domain: string): boolean {
-  const h = host.toLowerCase()
+  // «instagram.com.» (con punto final) es la misma web.
+  const h = host.toLowerCase().replace(/\.+$/, '')
   return h === domain || h.endsWith(`.${domain}`)
 }

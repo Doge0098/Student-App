@@ -268,3 +268,11 @@ describe('títulos y asignaturas', () => {
     expect(pageKey(u('https://ejemplo.com/a/#parte'))).toBe('https://ejemplo.com/a')
   })
 })
+
+describe('hosts con punto final', () => {
+  it('«instagram.com.» cuenta como instagram.com', () => {
+    expect(getDistraction(new URL('https://www.instagram.com./reels'))).toBe('Instagram')
+    expect(getMessagingApp(new URL('https://web.whatsapp.com./'))).toBe('WhatsApp')
+    expect(categorize(new URL('https://www.tiktok.com.:443/foryou'))).toBe('distraccion')
+  })
+})

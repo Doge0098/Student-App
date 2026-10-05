@@ -25,6 +25,11 @@ export function navigateTab(tab: BrowserTab, rawUrl: string, rawTitle: string): 
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
   const key = pageKey(url)
   const title = rawTitle.trim() || deriveTitle(url)
+  // Un vídeo se muestra con su versión «embed»: que cargue esa dirección no es una página nueva.
+  if (tab.src !== tab.url && key === pageKey(new URL(tab.src))) {
+    if (title === tab.title) return null
+    return { tab: { ...tab, title }, url: new URL(tab.url), title, samePage: true }
+  }
   const samePage = key === tab.key
   if (samePage && title === tab.title) return null
   return {
@@ -47,4 +52,15 @@ export function retitleHistory(history: HistoryItem[], url: URL, title: string, 
       ? { ...h, title, subject: h.subjectManual ? h.subject : detectSubjectForUrl(url, title) }
       : h,
   )
+}
+
+/** Mínimo entre dos páginas nuevas guardadas en el historial desde la misma pestaña. */
+export const MIN_RECORD_GAP_MS = 3000
+
+/** Dice si ya se puede guardar otra página de esta pestaña y apunta el momento si es así. */
+export function canRecordNavigation(last: Map<string, number>, tabId: string, now: number): boolean {
+  const before = last.get(tabId)
+  if (before !== undefined && now - before < MIN_RECORD_GAP_MS) return false
+  last.set(tabId, now)
+  return true
 }

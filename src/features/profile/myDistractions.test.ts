@@ -25,4 +25,11 @@ describe('addDistraction', () => {
     const full = Array.from({ length: MAX_DISTRACTIONS }, (_, i) => `web${i}.com`)
     expect(addDistraction('marca.com', full)).toMatchObject({ ok: false, error: expect.stringContaining('llena') })
   })
+
+  it('si se escribe una parte que ya vigilo (Shorts), lo dice en vez de añadir YouTube entero', () => {
+    const r = addDistraction('https://www.youtube.com/shorts/abcdefghijk', [])
+    expect(r.ok).toBe(false)
+    expect(!r.ok && r.error).toMatch(/Shorts/)
+    expect(addDistraction('youtube.com/shorts', []).ok).toBe(false)
+  })
 })
