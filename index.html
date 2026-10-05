@@ -1,10 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>scaffold</title>
+    <meta name="description" content="Todo lo que necesitas para estudiar en una sola página: temporizador, tareas, música, navegador y Google." />
+    <meta name="theme-color" content="#5b5bd6" />
+    <title>Student App</title>
+    <script>
+      // Aplica el tema guardado antes de pintar, para evitar un parpadeo.
+      try {
+        const saved = JSON.parse(localStorage.getItem('student-app:theme') || 'null')
+        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

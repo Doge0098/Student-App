@@ -2,7 +2,7 @@ import { Coffee, Flame, Pause, Play, Square, Timer } from 'lucide-react'
 import { useState } from 'react'
 import { Panel } from '../../components/Panel'
 import { BREAK_OPTIONS, MAX_FOCUS_MINUTES, MIN_FOCUS_MINUTES, clampFocusMinutes, formatClock } from '../../lib/time'
-import { useTimer } from './TimerContext'
+import { useRemainingMs, useTimer } from './TimerContext'
 
 const FOCUS_PRESETS = [30, 45, 60, 90]
 const RADIUS = 54
@@ -10,7 +10,8 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 
 export function FocusTimer() {
   const timer = useTimer()
-  const { phase, status, remainingMs, durationMs, settings, today } = timer
+  const remainingMs = useRemainingMs()
+  const { phase, status, durationMs, settings, today } = timer
   const [draft, setDraft] = useState(String(settings.focusMinutes))
 
   const idle = phase === 'idle'

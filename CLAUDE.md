@@ -64,9 +64,12 @@ src/
 
 ## Estado y próximos pasos
 
-- [ ] Fase 1 (MVP web), **en curso**: hecho → lógica de `lib/` con tests, temporizador, aviso
-      "¿descansar o seguir?", tareas, contexto de música. Falta → reproductores y panel de música,
-      navegador (`features/browser/`), `App.tsx`, estilos y README.
+- [x] Fase 1 (MVP web): temporizador, aviso "¿descansar o seguir?", tareas, música (YouTube/Spotify),
+      navegador con clasificación y "Continuar donde lo dejaste", accesos y "Crear nuevo" de Google,
+      tema claro/oscuro, diseño adaptado a móvil. Probado en Chromium.
+- [ ] **Pendiente de respuesta del usuario**: ¿quitar Wikipedia (buscador y acceso rápido) o dejarla?
+      ¿Añadir alguna web propia (p. ej. la plataforma de su instituto) a los accesos rápidos?
+- [ ] README en español con cómo usarla y arrancarla.
 - [ ] Publicarla en internet (GitHub Pages o similar).
 - [ ] Integración real con Google (OAuth): ver archivos de Drive, eventos de Calendar y sincronizar
       tareas con Google Tasks. Requiere crear un proyecto gratuito en Google Cloud.

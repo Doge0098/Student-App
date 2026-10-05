@@ -31,7 +31,6 @@ interface TimerContextValue {
   phase: TimerPhase
   status: TimerStatus
   durationMs: number
-  remainingMs: number
   settings: TimerSettings
   today: DayStats
   setFocusMinutes: (minutes: number) => void
@@ -46,6 +45,8 @@ interface TimerContextValue {
 const IDLE: TimerState = { phase: 'idle', status: 'paused', durationMs: 0, endsAt: null, remainingMs: 0 }
 
 const TimerContext = createContext<TimerContextValue | null>(null)
+/** El tiempo restante va aparte: cambia 4 veces por segundo y así solo se repinta lo que lo muestra. */
+const RemainingContext = createContext(0)
 
 function addFocusMinutes(prev: DayStats, minutes: number, blocks: number): DayStats {
   const date = todayKey()
@@ -162,7 +163,6 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       phase: state.phase,
       status: state.status,
       durationMs: state.durationMs,
-      remainingMs,
       settings,
       today,
       setFocusMinutes,
@@ -173,10 +173,14 @@ export function TimerProvider({ children }: { children: ReactNode }) {
       resume,
       stop,
     }),
-    [state.phase, state.status, state.durationMs, remainingMs, settings, today, setFocusMinutes, setBreakMinutes, startFocus, startBreak, pause, resume, stop],
+    [state.phase, state.status, state.durationMs, settings, today, setFocusMinutes, setBreakMinutes, startFocus, startBreak, pause, resume, stop],
   )
 
-  return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>
+  return (
+    <TimerContext.Provider value={value}>
+      <RemainingContext.Provider value={remainingMs}>{children}</RemainingContext.Provider>
+    </TimerContext.Provider>
+  )
 }
 
 // oxlint-disable-next-line react/only-export-components
@@ -184,4 +188,9 @@ export function useTimer(): TimerContextValue {
   const ctx = useContext(TimerContext)
   if (!ctx) throw new Error('useTimer debe usarse dentro de <TimerProvider>')
   return ctx
+}
+
+// oxlint-disable-next-line react/only-export-components
+export function useRemainingMs(): number {
+  return useContext(RemainingContext)
 }

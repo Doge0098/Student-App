@@ -93,11 +93,18 @@ export function TaskList() {
         <ul className="task-list">
           {visible.map((task) => (
             <li key={task.id} className={`task ${task.done ? 'is-done' : ''}`}>
-              <label className="task-check">
-                <input type="checkbox" checked={task.done} onChange={() => update(task.id, { done: !task.done })} />
-                <span className="task-text">{task.text}</span>
-              </label>
-              <SubjectPicker value={task.subject} onChange={(subject) => update(task.id, { subject })} />
+              <input
+                id={`task-${task.id}`}
+                type="checkbox"
+                checked={task.done}
+                onChange={() => update(task.id, { done: !task.done })}
+              />
+              <div className="task-body">
+                <label htmlFor={`task-${task.id}`} className="task-text">
+                  {task.text}
+                </label>
+                <SubjectPicker value={task.subject} onChange={(subject) => update(task.id, { subject })} />
+              </div>
               <button
                 type="button"
                 className="icon-btn"

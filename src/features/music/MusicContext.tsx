@@ -5,6 +5,7 @@ import { uid } from '../../lib/text'
 import { musicSourceUrl, parseMusicInput, type MusicSource } from '../../lib/web'
 
 export interface PlayerControls {
+  play: () => void
   toggle: () => void
   next?: () => void
   prev?: () => void
@@ -90,7 +91,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       setSource(parsed)
       return true
     },
-    [setSource],
+    [setSource, sourceUrl],
   )
 
   const addStation = useCallback(

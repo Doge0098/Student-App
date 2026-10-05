@@ -1,0 +1,318 @@
+import { ArrowRight, Compass, ExternalLink, House, Info, RotateCcw, TriangleAlert, X } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import { Modal } from '../../components/Modal'
+import { Panel } from '../../components/Panel'
+import { useToast } from '../../components/Toast'
+import { usePersistentState } from '../../hooks/usePersistentState'
+import { fetchTitle } from '../../lib/oembed'
+import { uid } from '../../lib/text'
+import { formatClock } from '../../lib/time'
+import {
+  SEARCH_ENGINES,
+  categorize,
+  deriveTitle,
+  detectSubjectForUrl,
+  getDistraction,
+  getEmbed,
+  isMusicUrl,
+  pageKey,
+  parseYouTube,
+  resolveInput,
+  siteName,
+  type SearchEngineId,
+} from '../../lib/web'
+import { useMusic } from '../music/MusicContext'
+import { useRemainingMs, useTimer } from '../timer/TimerContext'
+import { BrowserHome } from './BrowserHome'
+import { SiteIcon } from './SiteIcon'
+import type { BrowserTab, HistoryItem } from './types'
+
+const HOME = 'home'
+const MAX_TABS = 6
+const MAX_HISTORY = 150
+
+const IFRAME_SANDBOX =
+  'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-modals allow-downloads allow-storage-access-by-user-activation'
+
+function trimHistory(items: HistoryItem[]): HistoryItem[] {
+  const pinned = items.filter((h) => h.pinned)
+  const rest = items.filter((h) => !h.pinned).slice(0, MAX_HISTORY)
+  return [...pinned, ...rest]
+}
+
+export function StudyBrowser() {
+  const timer = useTimer()
+  const music = useMusic()
+  const toast = useToast()
+  const [history, setHistory] = usePersistentState<HistoryItem[]>('browser-history', [])
+  const [tabs, setTabs] = usePersistentState<BrowserTab[]>('browser-tabs', [])
+  const [activeId, setActiveId] = usePersistentState<string>('browser-active', HOME)
+  const [engine, setEngine] = usePersistentState<SearchEngineId>('browser-engine', 'google')
+  const [address, setAddress] = useState('')
+  const [pending, setPending] = useState<{ url: string; label: string } | null>(null)
+  // Las pestañas guardadas solo se cargan cuando se abren, no todas a la vez al entrar.
+  const [loaded, setLoaded] = useState<Set<string>>(() => new Set([activeId]))
+
+  const activeTab = tabs.find((t) => t.id === activeId) ?? null
+
+  const activate = (id: string) => {
+    setActiveId(id)
+    setLoaded((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
+  }
+
+  const record = (url: URL, title: string) => {
+    const key = pageKey(url)
+    const now = Date.now()
+    setHistory((prev) => {
+      const existing = prev.find((h) => h.key === key)
+      if (existing) {
+        return [{ ...existing, visits: existing.visits + 1, lastVisited: now }, ...prev.filter((h) => h !== existing)]
+      }
+      const item: HistoryItem = {
+        id: uid(),
+        key,
+        url: url.href,
+        title,
+        category: categorize(url),
+        subject: detectSubjectForUrl(url, title),
+        visits: 1,
+        lastVisited: now,
+      }
+      return trimHistory([item, ...prev])
+    })
+  }
+
+  /** Los vídeos traen su título real (y así se adivina mejor la asignatura). */
+  const improveTitle = (url: URL) => {
+    const key = pageKey(url)
+    void fetchTitle(url.href).then((title) => {
+      if (!title) return
+      setHistory((prev) =>
+        prev.map((h) =>
+          h.key === key && h.title === deriveTitle(url)
+            ? { ...h, title, subject: h.subjectManual ? h.subject : detectSubjectForUrl(url, title) }
+            : h,
+        ),
+      )
+      setTabs((prev) => prev.map((t) => (t.key === key ? { ...t, title } : t)))
+    })
+  }
+
+  const launch = (url: URL, shouldRecord: boolean) => {
+    const title = deriveTitle(url)
+    if (shouldRecord) record(url, title)
+    const embed = getEmbed(url)
+
+    if (embed) {
+      const key = pageKey(url)
+      const existing = tabs.find((t) => t.key === key)
+      if (existing) {
+        activate(existing.id)
+      } else {
+        const tab: BrowserTab = { id: uid(), key, url: url.href, src: embed.src, title, hint: embed.hint, reloads: 0 }
+        setTabs((prev) => [...prev, tab].slice(-MAX_TABS))
+        activate(tab.id)
+      }
+    } else {
+      window.open(url.href, '_blank', 'noopener,noreferrer')
+      toast(
+        categorize(url) === 'google'
+          ? 'Google abre sus apps en una pestaña nueva. Pega aquí el enlace de tu Doc para tenerlo dentro.'
+          : `${siteName(url)} no se deja mostrar dentro de la app: se ha abierto en una pestaña nueva.`,
+      )
+    }
+
+    if (parseYouTube(url) || url.hostname.endsWith('vimeo.com')) improveTitle(url)
+  }
+
+  const open = (raw: string, options: { record?: boolean } = {}) => {
+    const url = resolveInput(raw, engine)
+    if (!url) return
+    const shouldRecord = options.record ?? true
+
+    if (isMusicUrl(url) && music.play(url.href)) {
+      toast('Suena en el panel de Música 🎧')
+      return
+    }
+
+    const distraction = getDistraction(url)
+    const onBreak = timer.phase === 'break' && timer.status === 'running'
+    if (distraction && !onBreak) {
+      setPending({ url: url.href, label: distraction })
+      return
+    }
+    launch(url, shouldRecord && !distraction)
+  }
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    if (!address.trim()) return
+    open(address)
+    setAddress('')
+  }
+
+  const closeTab = (id: string) => {
+    const index = tabs.findIndex((t) => t.id === id)
+    const remaining = tabs.filter((t) => t.id !== id)
+    setTabs(remaining)
+    if (activeId === id) activate(remaining[Math.min(index, remaining.length - 1)]?.id ?? HOME)
+  }
+
+  const reloadTab = (id: string) =>
+    setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, reloads: t.reloads + 1 } : t)))
+
+  const updateItem = (id: string, patch: Partial<HistoryItem>) =>
+    setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)))
+
+  return (
+    <Panel title="Navegador de estudio" icon={<Compass size={18} />} className="browser-panel">
+      <form className="address-bar" onSubmit={submit} role="search">
+        <input
+          type="text"
+          inputMode="search"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Busca algo o pega un enlace (Wikipedia, YouTube, Google Docs…)"
+          aria-label="Buscar o escribir dirección"
+          enterKeyHint="go"
+        />
+        <select
+          value={engine}
+          onChange={(e) => setEngine(e.target.value as SearchEngineId)}
+          aria-label="Buscar en"
+          title="Buscar en"
+        >
+          {Object.entries(SEARCH_ENGINES).map(([id, e]) => (
+            <option key={id} value={id}>
+              {e.label}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="btn btn-primary btn-icon" aria-label="Ir" disabled={!address.trim()}>
+          <ArrowRight size={18} />
+        </button>
+      </form>
+
+      <div className="tab-strip" role="tablist" aria-label="Pestañas">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={!activeTab}
+          className={`tab ${!activeTab ? 'is-active' : ''}`}
+          onClick={() => activate(HOME)}
+        >
+          <House size={15} aria-hidden="true" />
+          <span className="tab-title">Inicio</span>
+        </button>
+        {tabs.map((tab) => (
+          <div key={tab.id} className={`tab ${tab.id === activeTab?.id ? 'is-active' : ''}`}>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab.id === activeTab?.id}
+              className="tab-main"
+              title={tab.title}
+              onClick={() => activate(tab.id)}
+            >
+              <SiteIcon url={tab.url} category={categorize(new URL(tab.url))} size={15} />
+              <span className="tab-title">{tab.title}</span>
+            </button>
+            <button type="button" className="tab-close" aria-label={`Cerrar ${tab.title}`} onClick={() => closeTab(tab.id)}>
+              <X size={13} />
+            </button>
+          </div>
+        ))}
+        {activeTab && (
+          <div className="tab-tools">
+            <button type="button" className="icon-btn" title="Recargar" aria-label="Recargar" onClick={() => reloadTab(activeTab.id)}>
+              <RotateCcw size={16} />
+            </button>
+            <a
+              className="icon-btn"
+              href={activeTab.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Abrir en una pestaña nueva"
+              aria-label="Abrir en una pestaña nueva"
+            >
+              <ExternalLink size={16} />
+            </a>
+          </div>
+        )}
+      </div>
+
+      {activeTab?.hint && (
+        <p className="frame-hint">
+          <Info size={14} aria-hidden="true" />
+          {activeTab.hint === 'google-login'
+            ? 'Para editar necesitas tener la sesión de Google iniciada en este navegador. Si no carga, ábrelo con ↗.'
+            : 'Si un resultado no carga aquí dentro, ábrelo con ↗ o pega su enlace en la barra.'}
+        </p>
+      )}
+
+      <div className="browser-viewport">
+        {!activeTab && (
+          <BrowserHome
+            history={history}
+            onOpen={open}
+            onUpdate={updateItem}
+            onRemove={(id) => setHistory((prev) => prev.filter((h) => h.id !== id))}
+          />
+        )}
+        {tabs.map((tab) =>
+          loaded.has(tab.id) ? (
+            <iframe
+              key={`${tab.id}-${tab.reloads}`}
+              src={tab.src}
+              title={tab.title}
+              hidden={tab.id !== activeTab?.id}
+              sandbox={IFRAME_SANDBOX}
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write"
+              referrerPolicy="strict-origin-when-cross-origin"
+              className="browser-frame"
+            />
+          ) : null,
+        )}
+      </div>
+
+      <DistractionModal
+        label={pending?.label ?? null}
+        onCancel={() => setPending(null)}
+        onConfirm={() => {
+          if (pending) launch(new URL(pending.url), false)
+          setPending(null)
+        }}
+      />
+    </Panel>
+  )
+}
+
+interface DistractionModalProps {
+  label: string | null
+  onCancel: () => void
+  onConfirm: () => void
+}
+
+function DistractionModal({ label, onCancel, onConfirm }: DistractionModalProps) {
+  const timer = useTimer()
+  const remainingMs = useRemainingMs()
+  const focusRunning = timer.phase === 'focus' && timer.status === 'running'
+
+  return (
+    <Modal open={label !== null} title={`Eso parece una distracción (${label ?? ''})`} icon={<TriangleAlert size={28} />} onClose={onCancel}>
+      <p className="modal-text">
+        {focusRunning
+          ? `Estás en un bloque de concentración: te quedan ${formatClock(remainingMs)}. Aguanta un poco: en el descanso podrás entrar sin avisos.`
+          : 'Has venido aquí a estudiar. ¿Seguro que quieres abrirlo?'}
+      </p>
+      <div className="modal-actions">
+        <button type="button" className="btn btn-primary" autoFocus onClick={onCancel}>
+          Volver a lo mío
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={onConfirm}>
+          Abrir igualmente
+        </button>
+      </div>
+    </Modal>
+  )
+}
