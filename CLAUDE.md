@@ -1,4 +1,6 @@
-# Student App — memoria del proyecto
+# LockIn — memoria del proyecto
+
+(El repositorio se llama Student-App; la app se llama **LockIn** desde la fase 4.)
 
 Este archivo es la memoria del proyecto: Claude lo lee al empezar cada sesión.
 Mantenlo al día cuando cambie una decisión o se termine una fase.
@@ -6,9 +8,10 @@ Mantenlo al día cuando cambie una decisión o se termine una fase.
 ## La idea
 
 Los estudiantes se distraen al saltar entre webs o al coger el móvil (reels).
-Student App reúne en **una sola página web** todo lo que necesitan para estudiar,
-para que no tengan que moverse de ella. Es para todo tipo de estudiantes.
-La interfaz está en español.
+LockIn reúne en **una sola página web** todo lo que necesitan para estudiar,
+para que no tengan que moverse de ella. Es para estudiantes **de todos los cursos** y para
+**cualquiera que quiera usarla** (pública). Se usará sobre todo en el **ordenador propio, en casa**
+(los institutos quizá más adelante). La interfaz está en español.
 
 ## Requisitos del usuario (no cambiar sin preguntar)
 
@@ -25,6 +28,26 @@ La interfaz está en español.
 8. **Minimalista de verdad y fácil de entender**: nada decorativo que no aporte (p. ej. se quitó el
    círculo de progreso del temporizador). Wikipedia se queda.
 9. **Tienda de apps de estudio** (VS Code, máquinas virtuales, IA…) y preparada para **app descargable**.
+10. **Nombre: LockIn.**
+11. **Selector de curso** (Primaria, ESO, Bachillerato, FP, Universidad, Otro) que adapta funciones
+    (asignaturas que se ofrecen, apps recomendadas, cómo explica la IA…).
+12. **Modos de estudio**: lo estricto que es LockIn con las distracciones depende del modo elegido
+    (Suave / Normal / Estricto, ver `src/features/profile/profile.ts`).
+13. **IA**: cada estudiante usa su propia clave de la IA que elija (Claude, ChatGPT, Gemini…).
+    LockIn no tiene servidor ni paga IA.
+14. **Datos solo en el navegador**: sin cuentas ni servidor propio. Para cambiar de ordenador:
+    exportar/importar una copia en un archivo.
+
+## Convenciones de código
+
+- Estado compartido entre componentes: `createStore` + `useStore` (`src/hooks/store.ts`); se guarda
+  en `localStorage` y se sincroniza entre componentes y pestañas. `usePersistentState` solo para estado
+  local de un componente.
+- Claves de `localStorage` con el prefijo `student-app:` (se mantiene tras el cambio de nombre para no
+  perder datos).
+- Cada función nueva trae su propio CSS (`features/x/x.css` importado desde su componente);
+  `styles.css` es solo para la base común.
+- Textos en español, tono cercano y corto. Minimalismo: nada decorativo que no aporte.
 
 ## Decisiones tomadas
 

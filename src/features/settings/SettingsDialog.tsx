@@ -153,7 +153,7 @@ function AccountsSettings() {
         <ShieldCheck size={14} aria-hidden="true" />
         <span>
           Se abre la página oficial de cada servicio para que inicies sesión. Tu contraseña nunca se escribe ni se guarda
-          en Student App. Funciona mejor en Chrome o Edge.
+          en LockIn. Funciona mejor en Chrome o Edge.
         </span>
       </p>
       {(Object.keys(SERVICES) as ServiceId[]).map((id) => {
@@ -196,14 +196,14 @@ function InstallSettings({ onShowGuide }: { onShowGuide: () => void }) {
         {platform.isInstalled ? (
           <p className="hint hint-box">
             <CircleCheck size={14} aria-hidden="true" />
-            <span>Ya estás usando Student App como app instalada.</span>
+            <span>Ya estás usando LockIn como app instalada.</span>
           </p>
         ) : canInstall ? (
           <>
             <p className="hint">Tendrás su propio icono y ventana, sin pestañas del navegador que distraigan.</p>
             <div>
               <button type="button" className="btn btn-primary" onClick={() => void install()}>
-                <Download size={16} /> Instalar Student App
+                <Download size={16} /> Instalar LockIn
               </button>
             </div>
           </>

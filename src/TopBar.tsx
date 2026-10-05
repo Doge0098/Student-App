@@ -46,7 +46,7 @@ export function TopBar() {
         <span className="brand-logo" aria-hidden="true">
           <BookOpen size={18} />
         </span>
-        <span className="brand-name">Student App</span>
+        <span className="brand-name">LockIn</span>
       </div>
       <div className="topbar-center">
         <TimerPill />

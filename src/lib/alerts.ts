@@ -42,7 +42,7 @@ export function requestNotificationPermission(): void {
 export function notify(title: string, body: string): void {
   if (!('Notification' in window) || Notification.permission !== 'granted') return
   try {
-    const n = new Notification(title, { body, icon: `${import.meta.env.BASE_URL}favicon.svg`, tag: 'student-app-timer' })
+    const n = new Notification(title, { body, icon: `${import.meta.env.BASE_URL}favicon.svg`, tag: 'lockin-timer' })
     n.onclick = () => {
       window.focus()
       n.close()

@@ -29,6 +29,7 @@ import { useMusic } from '../music/MusicContext'
 import { useRemainingMs, useTimer } from '../timer/TimerContext'
 import { AppStore } from '../store/AppStore'
 import { DEFAULT_MY_APPS, type StoreApp } from '../store/catalog'
+import { BrowserFrame } from './BrowserFrame'
 import { BrowserHome } from './BrowserHome'
 import { SiteIcon } from './SiteIcon'
 import type { BrowserTab, HistoryItem } from './types'
@@ -37,9 +38,6 @@ const HOME = 'home'
 const STORE = 'store'
 const MAX_TABS = 6
 const MAX_HISTORY = 150
-
-const IFRAME_SANDBOX =
-  'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation allow-modals allow-downloads allow-storage-access-by-user-activation'
 
 function trimHistory(items: HistoryItem[]): HistoryItem[] {
   const pinned = items.filter((h) => h.pinned)
@@ -319,15 +317,11 @@ export function StudyBrowser() {
         )}
         {tabs.map((tab) =>
           loaded.has(tab.id) ? (
-            <iframe
+            <BrowserFrame
               key={`${tab.id}-${tab.reloads}`}
               src={tab.src}
               title={tab.title}
               hidden={tab.id !== activeTab?.id}
-              sandbox={IFRAME_SANDBOX}
-              allow="autoplay; encrypted-media; picture-in-picture; fullscreen; clipboard-write"
-              referrerPolicy="strict-origin-when-cross-origin"
-              className="browser-frame"
             />
           ) : null,
         )}

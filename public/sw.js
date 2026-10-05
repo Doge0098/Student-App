@@ -1,7 +1,7 @@
-// Service worker: permite instalar Student App y abrirla aunque no haya internet.
+// Service worker: permite instalar LockIn y abrirla aunque no haya internet.
 // La página se pide primero a la red (para tener siempre la última versión) y si falla se usa la copia guardada.
 // Los archivos de /assets/ llevan un código en el nombre, así que se pueden guardar sin miedo a quedarse viejos.
-const CACHE = 'student-app-v1'
+const CACHE = 'lockin-v1'
 const SHELL = ['./', './index.html', './favicon.svg', './manifest.webmanifest', './icon-192.png', './icon-512.png']
 
 self.addEventListener('install', (event) => {

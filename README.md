@@ -1,4 +1,4 @@
-# Student App
+# LockIn
 
 Todo lo que un estudiante necesita para estudiar, **en un solo sitio**, para no ir saltando de web en web
 ni acabar en el móvil.

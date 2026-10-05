@@ -49,7 +49,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
 
   const start = useCallback((service: ServiceId, url: string, action: 'login' | 'logout') => {
     pending.current = { service, at: Date.now(), action }
-    openPopup(url, `student-app-${service}`)
+    openPopup(url, `lockin-${service}`)
   }, [])
 
   const value = useMemo<AccountsValue>(

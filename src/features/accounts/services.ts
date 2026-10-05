@@ -11,7 +11,7 @@ interface ServiceInfo {
 
 /**
  * El inicio de sesión se hace siempre en la página oficial de cada servicio.
- * Student App nunca ve ni guarda contraseñas: el navegador recuerda la sesión
+ * LockIn nunca ve ni guarda contraseñas: el navegador recuerda la sesión
  * y los reproductores y documentos incrustados la usan.
  */
 export const SERVICES: Record<ServiceId, ServiceInfo> = {

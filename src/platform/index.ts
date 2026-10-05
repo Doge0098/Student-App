@@ -1,7 +1,7 @@
 /**
  * Todo lo que cambia entre la versión web y la futura versión de escritorio pasa por aquí.
  *
- * La versión de escritorio (Electron) expondrá `window.studentAppDesktop` desde su script de
+ * La versión de escritorio (Electron) expondrá `window.lockinDesktop` desde su script de
  * precarga. Con ese puente la app podrá mostrar cualquier web dentro (sin las limitaciones de los
  * iframes), abrir programas instalados, etc. Sin él, se usa lo que permite un navegador normal.
  */
@@ -13,12 +13,12 @@ export interface DesktopBridge {
 
 declare global {
   interface Window {
-    studentAppDesktop?: DesktopBridge
+    lockinDesktop?: DesktopBridge
   }
 }
 
 function bridge(): DesktopBridge | undefined {
-  return typeof window === 'undefined' ? undefined : window.studentAppDesktop
+  return typeof window === 'undefined' ? undefined : window.lockinDesktop
 }
 
 export const platform = {

@@ -89,11 +89,11 @@ export function TimerProvider({ children }: { children: ReactNode }) {
 
   // El tiempo restante también se ve en el título de la pestaña.
   useEffect(() => {
-    if (state.phase === 'idle') document.title = 'Student App'
-    else if (state.status === 'finished') document.title = '⏰ ¿Descansar o seguir? · Student App'
+    if (state.phase === 'idle') document.title = 'LockIn'
+    else if (state.status === 'finished') document.title = '⏰ ¿Descansar o seguir? · LockIn'
     else {
       const label = state.phase === 'focus' ? 'Estudiando' : 'Descanso'
-      document.title = `${formatClock(remainingMs)} ${label} · Student App`
+      document.title = `${formatClock(remainingMs)} ${label} · LockIn`
     }
   }, [state.phase, state.status, remainingMs])
 

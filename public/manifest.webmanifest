@@ -1,6 +1,6 @@
 {
-  "name": "Student App",
-  "short_name": "Student App",
+  "name": "LockIn",
+  "short_name": "LockIn",
   "description": "Todo lo que necesitas para estudiar en un solo sitio: concentración, tareas, música, navegador y apps de estudio.",
   "lang": "es",
   "start_url": "./",

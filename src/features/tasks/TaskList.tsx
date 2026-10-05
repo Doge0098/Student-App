@@ -2,38 +2,18 @@ import { ListTodo, Plus, Trash2, X } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Panel } from '../../components/Panel'
 import { SubjectPicker } from '../../components/SubjectPicker'
-import { usePersistentState } from '../../hooks/usePersistentState'
-import { detectSubject, type SubjectId } from '../../lib/subjects'
-import { uid } from '../../lib/text'
-
-interface Task {
-  id: string
-  text: string
-  done: boolean
-  subject: SubjectId
-  createdAt: number
-}
+import { useTasks, type Task } from './store'
 
 export function TaskList() {
-  const [tasks, setTasks] = usePersistentState<Task[]>('tasks', [])
+  const { tasks, pending, add: addTask, update, remove, clearDone } = useTasks()
   const [text, setText] = useState('')
 
-  const pending = tasks.filter((t) => !t.done)
   const done = tasks.filter((t) => t.done)
 
   const add = (e: FormEvent) => {
     e.preventDefault()
-    const value = text.trim()
-    if (!value) return
-    // La asignatura se adivina sola a partir del texto; se puede cambiar después.
-    setTasks((prev) => [{ id: uid(), text: value, done: false, subject: detectSubject(value), createdAt: Date.now() }, ...prev])
-    setText('')
+    if (addTask(text)) setText('')
   }
-
-  const update = (id: string, patch: Partial<Task>) =>
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
-
-  const remove = (id: string) => setTasks((prev) => prev.filter((t) => t.id !== id))
 
   const renderTask = (task: Task) => (
     <li key={task.id} className={`task ${task.done ? 'is-done' : ''}`}>
@@ -85,7 +65,7 @@ export function TaskList() {
         <details className="done-tasks">
           <summary>Hechas ({done.length})</summary>
           <ul className="task-list">{done.map(renderTask)}</ul>
-          <button type="button" className="btn btn-link" onClick={() => setTasks((prev) => prev.filter((t) => !t.done))}>
+          <button type="button" className="btn btn-link" onClick={clearDone}>
             <Trash2 size={14} /> Borrar las hechas
           </button>
         </details>
