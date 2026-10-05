@@ -24,12 +24,14 @@ import {
   Library,
   Mail,
   MessageCircle,
+  MessagesSquare,
   Microscope,
   Monitor,
   NotebookPen,
   PenTool,
   Presentation,
   Search,
+  Send,
   Server,
   Shapes,
   Sheet,
@@ -37,12 +39,22 @@ import {
   Sparkles,
   StickyNote,
   Terminal,
+  Users,
   Video,
   Workflow,
   type LucideIcon,
 } from 'lucide-react'
 
-export type StoreCategory = 'google' | 'ia' | 'programacion' | 'maquinas' | 'ciencias' | 'apuntes' | 'idiomas' | 'diseno'
+export type StoreCategory =
+  | 'google'
+  | 'ia'
+  | 'programacion'
+  | 'maquinas'
+  | 'ciencias'
+  | 'apuntes'
+  | 'idiomas'
+  | 'mensajeria'
+  | 'diseno'
 
 export const STORE_CATEGORIES: Record<StoreCategory, string> = {
   google: 'Google',
@@ -52,6 +64,7 @@ export const STORE_CATEGORIES: Record<StoreCategory, string> = {
   ciencias: 'Ciencias y mates',
   apuntes: 'Apuntes y memoria',
   idiomas: 'Idiomas y consulta',
+  mensajeria: 'Mensajería',
   diseno: 'Diseño y ofimática',
 }
 
@@ -136,6 +149,12 @@ export const STORE_APPS: StoreApp[] = [
   { id: 'wordreference', name: 'WordReference', description: 'Diccionarios de idiomas y foros de dudas.', category: 'idiomas', icon: Languages, webUrl: 'https://www.wordreference.com/es/', price: 'gratis' },
   { id: 'deepl', name: 'DeepL', description: 'Traductor muy preciso.', category: 'idiomas', icon: Languages, webUrl: 'https://www.deepl.com/translator', price: 'limites' },
   { id: 'duolingo', name: 'Duolingo', description: 'Aprende idiomas con lecciones cortas.', category: 'idiomas', icon: GraduationCap, webUrl: 'https://www.duolingo.com/', price: 'limites' },
+
+  // Mensajería: en un bloque de concentración se avisa antes de abrirlas (ver getMessagingApp)
+  { id: 'whatsapp', name: 'WhatsApp', description: 'Mensajes con tus compañeros y grupos de clase.', category: 'mensajeria', icon: MessageCircle, webUrl: 'https://web.whatsapp.com/', downloadUrl: 'https://www.whatsapp.com/download', price: 'gratis' },
+  { id: 'discord', name: 'Discord', description: 'Servidores y llamadas para estudiar en grupo.', category: 'mensajeria', icon: MessagesSquare, webUrl: 'https://discord.com/app', downloadUrl: 'https://discord.com/download', price: 'gratis' },
+  { id: 'telegram', name: 'Telegram', description: 'Mensajes, grupos y canales.', category: 'mensajeria', icon: Send, webUrl: 'https://web.telegram.org/', downloadUrl: 'https://desktop.telegram.org/', price: 'gratis' },
+  { id: 'teams', name: 'Microsoft Teams', description: 'Clases, chats y tareas si tu centro usa Microsoft.', category: 'mensajeria', icon: Users, webUrl: 'https://teams.microsoft.com/', downloadUrl: 'https://www.microsoft.com/es-es/microsoft-teams/download-app', price: 'gratis' },
 
   // Diseño y ofimática
   { id: 'libreoffice', name: 'LibreOffice', description: 'Textos, hojas de cálculo y presentaciones sin internet.', category: 'diseno', icon: FileText, downloadUrl: 'https://es.libreoffice.org/descarga/', price: 'gratis' },

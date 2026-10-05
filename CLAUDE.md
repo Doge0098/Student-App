@@ -51,6 +51,10 @@ La interfaz está en español.
 - **Tienda de apps**: catálogo en `src/features/store/catalog.ts` (con test). Cada app tiene `webUrl`
   (se abre por el navegador de la app) y/o `downloadUrl` (página oficial). La web no instala programas.
   «Mis apps» (ids en `localStorage`, clave `my-apps`) se muestran en Inicio.
+- **Mensajería** (WhatsApp, Discord, Telegram; Teams cuenta como plataforma de clase): están en la
+  tienda. No son distracciones bloqueadas: solo se avisa («¿Abrir X ahora?») si se abren durante un
+  bloque de concentración en marcha (`getMessagingApp` en `src/lib/web.ts`). Ninguna se deja mostrar
+  dentro de la app: se abren en pestaña nueva o se descargan.
 - **App descargable**: PWA (`public/manifest.webmanifest`, `public/sw.js`, iconos PNG) con botón
   «Instalar» cuando el navegador lo permite (`src/platform/install.ts`). Vite usa `base: './'`.
   Todo lo que dependa de web vs escritorio pasa por `src/platform/index.ts`: la futura versión
@@ -105,8 +109,8 @@ src/
     Al volver, se recargan los reproductores/pestañas que usan esa cuenta.
   - Personalización: interruptor claro/oscuro (+ automático), color principal y color de cada función
     (temporizador, tareas, navegador, música) elegidos de una **paleta de colores predefinidos**
-    (nada de selector RGB). Color principal por defecto: **azul cian** (`cian`: #0079b8 claro /
-    #29c5f6 oscuro), también en el icono y el manifest. Paleta en `src/lib/colors.ts`; cada panel lleva `data-accent` y redefine
+    (nada de selector RGB). El color por defecto de la app es índigo; «Azul cian» es una opción más
+    de la paleta (el usuario la pidió para Personalizar, **no** como color de toda la app). Paleta en `src/lib/colors.ts`; cada panel lleva `data-accent` y redefine
     `--accent` (ver `styles.css`). Cuentas en `src/features/accounts/`.
 - [x] Fase 3 (el usuario prefiere seguir mejorando la web antes del escritorio):
   - Más minimalista: un solo botón de ajustes, temporizador con − / +, tareas sin filtros, música

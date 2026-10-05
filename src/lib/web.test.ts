@@ -6,6 +6,7 @@ import {
   getDistraction,
   getEmbed,
   getGoogleFile,
+  getMessagingApp,
   getSearchQuery,
   isMusicUrl,
   pageKey,
@@ -52,6 +53,16 @@ describe('getDistraction', () => {
   })
 })
 
+describe('getMessagingApp', () => {
+  it('reconoce apps de mensajería, que no son distracciones bloqueadas', () => {
+    expect(getMessagingApp(u('https://web.whatsapp.com/'))).toBe('WhatsApp')
+    expect(getMessagingApp(u('https://discord.gg/abc'))).toBe('Discord')
+    expect(getMessagingApp(u('https://web.telegram.org/k/'))).toBe('Telegram')
+    expect(getMessagingApp(u('https://classroom.google.com/'))).toBeNull()
+    expect(getDistraction(u('https://web.whatsapp.com/'))).toBeNull()
+  })
+})
+
 describe('categorize', () => {
   it('clasifica por tipo de web', () => {
     expect(categorize(u('https://www.google.com/search?q=mitosis'))).toBe('busqueda')
@@ -67,6 +78,9 @@ describe('categorize', () => {
     expect(categorize(u('https://vscode.dev/'))).toBe('programacion')
     expect(categorize(u('https://colab.research.google.com/drive/abc'))).toBe('programacion')
     expect(categorize(u('https://excalidraw.com/'))).toBe('herramienta')
+    expect(categorize(u('https://web.whatsapp.com/'))).toBe('mensajeria')
+    expect(categorize(u('https://discord.com/app'))).toBe('mensajeria')
+    expect(categorize(u('https://teams.microsoft.com/'))).toBe('clase')
   })
 })
 

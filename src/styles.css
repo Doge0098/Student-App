@@ -10,8 +10,8 @@
   --text: #1b1d2a;
   --text-muted: #646a80;
   /* El color principal y el de cada función se eligen en Personalizar (src/lib/colors.ts). */
-  --accent-light: #0079b8;
-  --accent-dark: #29c5f6;
+  --accent-light: #5b5bd6;
+  --accent-dark: #8d8eff;
   --accent-contrast: #ffffff;
   --hover-mix: #000000;
   --break: #1f9d63;
@@ -1712,7 +1712,7 @@ div.tab {
 }
 
 .swatch-inherit {
-  background: conic-gradient(#0079b8, #5b5bd6, #0e7c86, #1a7d48, #c2410c, #c2185b, #7c3aed, #0079b8);
+  background: conic-gradient(#5b5bd6, #2563eb, #0079b8, #1a7d48, #c2410c, #c2185b, #7c3aed, #5b5bd6);
   color: #fff;
 }
 

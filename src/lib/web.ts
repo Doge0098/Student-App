@@ -76,6 +76,24 @@ export function getDistraction(url: URL): string | null {
 }
 
 /* ------------------------------------------------------------------ */
+/* Mensajería                                                          */
+/* ------------------------------------------------------------------ */
+
+const MESSAGING: { label: string; hosts: string[] }[] = [
+  { label: 'WhatsApp', hosts: ['whatsapp.com', 'wa.me'] },
+  { label: 'Discord', hosts: ['discord.com', 'discord.gg'] },
+  { label: 'Telegram', hosts: ['telegram.org', 't.me'] },
+]
+
+/**
+ * Apps de mensajería: útiles para estudiar en grupo, pero tientan a distraerse.
+ * No se bloquean; solo se avisa si se abren durante un bloque de concentración.
+ */
+export function getMessagingApp(url: URL): string | null {
+  return MESSAGING.find((m) => m.hosts.some((h) => hostMatches(url.hostname, h)))?.label ?? null
+}
+
+/* ------------------------------------------------------------------ */
 /* Categorías                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -89,6 +107,7 @@ export type CategoryId =
   | 'programacion'
   | 'idiomas'
   | 'ia'
+  | 'mensajeria'
   | 'distraccion'
   | 'web'
 
@@ -102,6 +121,7 @@ export const CATEGORIES: Record<CategoryId, string> = {
   programacion: 'Programación',
   idiomas: 'Idiomas',
   ia: 'IA',
+  mensajeria: 'Mensajería',
   distraccion: 'Distracción',
   web: 'Web',
 }
@@ -184,6 +204,7 @@ function isClassroomPlatform(host: string): boolean {
 export function categorize(url: URL): CategoryId {
   if (getDistraction(url)) return 'distraccion'
   if (getSearchQuery(url) !== null) return 'busqueda'
+  if (getMessagingApp(url)) return 'mensajeria'
   const host = url.hostname
   if (isClassroomPlatform(host)) return 'clase'
   for (const rule of CATEGORY_RULES) {

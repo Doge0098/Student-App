@@ -13,6 +13,7 @@ import {
   deriveTitle,
   detectSubjectForUrl,
   getDistraction,
+  getMessagingApp,
   getEmbed,
   isMusicUrl,
   pageKey,
@@ -57,7 +58,7 @@ export function StudyBrowser() {
   const [engine, setEngine] = usePersistentState<SearchEngineId>('browser-engine', 'google')
   const [myApps, setMyApps] = usePersistentState<string[]>('my-apps', DEFAULT_MY_APPS)
   const [address, setAddress] = useState('')
-  const [pending, setPending] = useState<{ url: string; label: string } | null>(null)
+  const [pending, setPending] = useState<{ url: string; label: string; messaging: boolean } | null>(null)
   // Las pestañas guardadas solo se cargan cuando se abren, no todas a la vez al entrar.
   const [loaded, setLoaded] = useState<Set<string>>(() => new Set([activeId]))
 
@@ -156,7 +157,13 @@ export function StudyBrowser() {
     const distraction = getDistraction(url)
     const onBreak = timer.phase === 'break' && timer.status === 'running'
     if (distraction && !onBreak) {
-      setPending({ url: url.href, label: distraction })
+      setPending({ url: url.href, label: distraction, messaging: false })
+      return
+    }
+    // La mensajería no es una distracción en sí: solo se avisa en mitad de un bloque de concentración.
+    const messaging = getMessagingApp(url)
+    if (messaging && timer.phase === 'focus' && timer.status === 'running') {
+      setPending({ url: url.href, label: messaging, messaging: true })
       return
     }
     launch(url, shouldRecord && !distraction)
@@ -328,6 +335,7 @@ export function StudyBrowser() {
 
       <DistractionModal
         label={pending?.label ?? null}
+        messaging={pending?.messaging ?? false}
         onCancel={() => setPending(null)}
         onConfirm={() => {
           if (pending) launch(new URL(pending.url), false)
@@ -340,21 +348,29 @@ export function StudyBrowser() {
 
 interface DistractionModalProps {
   label: string | null
+  messaging: boolean
   onCancel: () => void
   onConfirm: () => void
 }
 
-function DistractionModal({ label, onCancel, onConfirm }: DistractionModalProps) {
+function DistractionModal({ label, messaging, onCancel, onConfirm }: DistractionModalProps) {
   const timer = useTimer()
   const remainingMs = useRemainingMs()
   const focusRunning = timer.phase === 'focus' && timer.status === 'running'
 
   return (
-    <Modal open={label !== null} title={`Eso parece una distracción (${label ?? ''})`} icon={<TriangleAlert size={28} />} onClose={onCancel}>
+    <Modal
+      open={label !== null}
+      title={messaging ? `¿Abrir ${label ?? ''} ahora?` : `Eso parece una distracción (${label ?? ''})`}
+      icon={<TriangleAlert size={28} />}
+      onClose={onCancel}
+    >
       <p className="modal-text">
-        {focusRunning
-          ? `Estás en un bloque de concentración: te quedan ${formatClock(remainingMs)}. Aguanta un poco: en el descanso podrás entrar sin avisos.`
-          : 'Has venido aquí a estudiar. ¿Seguro que quieres abrirlo?'}
+        {messaging
+          ? `Estás en un bloque de concentración: te quedan ${formatClock(remainingMs)}. Los mensajes pueden esperar al descanso.`
+          : focusRunning
+            ? `Estás en un bloque de concentración: te quedan ${formatClock(remainingMs)}. Aguanta un poco: en el descanso podrás entrar sin avisos.`
+            : 'Has venido aquí a estudiar. ¿Seguro que quieres abrirlo?'}
       </p>
       <div className="modal-actions">
         <button type="button" className="btn btn-primary" data-autofocus onClick={onCancel}>

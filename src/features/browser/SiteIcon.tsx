@@ -9,6 +9,7 @@ import {
   GraduationCap,
   LayoutGrid,
   Languages,
+  MessagesSquare,
   MonitorPlay,
   Presentation,
   Search,
@@ -28,6 +29,7 @@ const CATEGORY_ICONS: Record<CategoryId, LucideIcon> = {
   programacion: Code,
   idiomas: Languages,
   ia: Bot,
+  mensajeria: MessagesSquare,
   distraccion: TriangleAlert,
   web: Globe,
 }
