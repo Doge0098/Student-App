@@ -1,4 +1,4 @@
-/* Carga bajo demanda las librerías oficiales de los reproductores de YouTube y Spotify. */
+/* Carga bajo demanda la librería oficial del reproductor de YouTube. */
 
 export interface YTPlayer {
   playVideo(): void
@@ -34,28 +34,10 @@ export interface YTNamespace {
   PlayerState: { PLAYING: number; PAUSED: number; ENDED: number; BUFFERING: number }
 }
 
-export interface SpotifyController {
-  play(): void
-  togglePlay(): void
-  pause?(): void
-  resume?(): void
-  destroy(): void
-  addListener(event: 'ready' | 'playback_update', callback: (e: { data?: { isPaused?: boolean } }) => void): void
-}
-
-export interface SpotifyIFrameAPI {
-  createController(
-    element: HTMLElement,
-    options: { uri: string; width?: string | number; height?: string | number },
-    callback: (controller: SpotifyController) => void,
-  ): void
-}
-
 declare global {
   interface Window {
     YT?: YTNamespace
     onYouTubeIframeAPIReady?: () => void
-    onSpotifyIframeApiReady?: (api: SpotifyIFrameAPI) => void
   }
 }
 
@@ -83,17 +65,4 @@ export function loadYouTubeApi(): Promise<YTNamespace> {
     })
   })
   return youtube
-}
-
-let spotify: Promise<SpotifyIFrameAPI> | null = null
-
-export function loadSpotifyApi(): Promise<SpotifyIFrameAPI> {
-  spotify ??= new Promise((resolve, reject) => {
-    window.onSpotifyIframeApiReady = (api) => resolve(api)
-    loadScript('https://open.spotify.com/embed/iframe-api/v1', () => {
-      spotify = null
-      reject(new Error('No se pudo cargar Spotify'))
-    })
-  })
-  return spotify
 }

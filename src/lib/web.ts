@@ -302,7 +302,7 @@ const GOOGLE_APP_NAMES: [string, string][] = [
 ]
 
 /* ------------------------------------------------------------------ */
-/* Música: YouTube, YouTube Music y Spotify                            */
+/* Música: YouTube y YouTube Music                                    */
 /* ------------------------------------------------------------------ */
 
 export interface YouTubeRef {
@@ -335,40 +335,29 @@ export function parseYouTube(url: URL): YouTubeRef | null {
   return { videoId, listId }
 }
 
-export type SpotifyKind = 'playlist' | 'album' | 'track' | 'episode' | 'show' | 'artist'
-
-export interface SpotifyRef {
-  kind: SpotifyKind
-  id: string
-}
-
-export function parseSpotify(input: string): SpotifyRef | null {
-  const text = input.trim()
-  const uri = text.match(/^spotify:(playlist|album|track|episode|show|artist):([A-Za-z0-9]+)$/)
-  if (uri) return { kind: uri[1] as SpotifyKind, id: uri[2] }
-  const url = tryUrl(text)
-  if (!url || !hostMatches(url.hostname, 'open.spotify.com')) return null
-  const m = url.pathname.match(/^\/(?:intl-[\w-]+\/)?(?:embed\/)?(playlist|album|track|episode|show|artist)\/([A-Za-z0-9]+)/)
-  return m ? { kind: m[1] as SpotifyKind, id: m[2] } : null
-}
-
-export type MusicSource = ({ provider: 'youtube' } & YouTubeRef) | ({ provider: 'spotify' } & SpotifyRef)
+/** Música: solo YouTube y YouTube Music (los enlaces de Spotify ya no se reproducen en LockIn). */
+export type MusicSource = { provider: 'youtube' } & YouTubeRef
 
 export function parseMusicInput(raw: string): MusicSource | null {
-  const spotify = parseSpotify(raw)
-  if (spotify) return { provider: 'spotify', ...spotify }
   const url = tryUrl(raw.trim()) ?? tryUrl(`https://${raw.trim()}`)
   const yt = url ? parseYouTube(url) : null
   return yt ? { provider: 'youtube', ...yt } : null
 }
 
+/** ¿Es un enlace o código de Spotify? (para explicar que ya no se usa). */
+export function isSpotifyLink(raw: string): boolean {
+  const text = raw.trim()
+  if (/^spotify:/i.test(text)) return true
+  const url = tryUrl(text) ?? tryUrl(`https://${text}`)
+  return url !== null && hostMatches(url.hostname, 'open.spotify.com')
+}
+
 /** Enlaces que son solo de música y van directos al reproductor. */
 export function isMusicUrl(url: URL): boolean {
-  return hostMatches(url.hostname, 'music.youtube.com') || hostMatches(url.hostname, 'open.spotify.com')
+  return hostMatches(url.hostname, 'music.youtube.com')
 }
 
 export function musicSourceUrl(src: MusicSource): string {
-  if (src.provider === 'spotify') return `https://open.spotify.com/${src.kind}/${src.id}`
   if (src.videoId) {
     return `https://www.youtube.com/watch?v=${src.videoId}${src.listId ? `&list=${src.listId}` : ''}`
   }

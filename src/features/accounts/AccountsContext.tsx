@@ -26,7 +26,7 @@ function openPopup(url: string, name: string) {
 
 export function AccountsProvider({ children }: { children: ReactNode }) {
   const toast = useToast()
-  const [versions, setVersions] = useState<Versions>({ google: 0, spotify: 0 })
+  const [versions, setVersions] = useState<Versions>({ google: 0 })
   const pending = useRef<{ service: ServiceId; at: number; action: 'login' | 'logout' } | null>(null)
 
   // Al volver a la app después de la ventana de la cuenta, se recargan los reproductores y documentos.

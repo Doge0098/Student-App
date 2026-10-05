@@ -17,8 +17,8 @@ ni acabar en el móvil. Para todos los cursos, de Primaria a la universidad.
     Gemini (Gemini tiene plan gratis); la clave se queda en tu navegador.
 - **Modos de estudio** Suave, Normal y Estricto: desde solo avisar hasta bloquear las distracciones
   (redes, reels, juegos y las webs que tú añadas) mientras te concentras.
-- **Música**: YouTube, YouTube Music, Spotify y sonidos ambiente (lluvia, olas, ruido…) que se pausan solos en los descansos.
-- **Ajustes**: curso, modo, colores, cuentas de Google y Spotify, copia de tus datos e instalación.
+- **Música**: YouTube Music con aspecto de app de móvil (biblioteca de listas, reproductor) y sonidos ambiente (lluvia, olas, ruido…) que se pausan solos en los descansos.
+- **Ajustes**: curso, modo, colores, tu cuenta de Google, copia de tus datos e instalación.
 
 Tus datos se guardan solo en tu navegador: no hay cuentas ni servidor. Para cambiar de ordenador,
 descarga una copia en Ajustes → Datos.

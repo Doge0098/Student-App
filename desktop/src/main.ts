@@ -57,7 +57,7 @@ function registerAppProtocol(webRoot: string): void {
   })
 }
 
-/** Solo la página principal de la app puede usar el puente (no los iframes de YouTube/Spotify). */
+/** Solo la página principal de la app puede usar el puente (no los iframes de YouTube). */
 function fromShell(event: IpcMainEvent): boolean {
   const frame = event.senderFrame
   return event.sender === getShell() && frame !== null && frame === event.sender.mainFrame && isAppUrl(frame.url)

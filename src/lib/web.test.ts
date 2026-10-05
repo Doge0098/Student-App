@@ -14,7 +14,7 @@ import {
   normalizeDomain,
   pageKey,
   parseMusicInput,
-  parseSpotify,
+  isSpotifyLink,
   parseYouTube,
   resolveInput,
 } from './web'
@@ -205,22 +205,19 @@ describe('música', () => {
     expect(parseYouTube(u('https://www.youtube.com/@LofiGirl'))).toBeNull()
   })
 
-  it('entiende enlaces y URIs de Spotify', () => {
-    expect(parseSpotify('https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ?si=abc')).toEqual({
-      kind: 'playlist',
-      id: '37i9dQZF1DWZeKCadgRdKQ',
-    })
-    expect(parseSpotify('https://open.spotify.com/intl-es/album/1A2b3C')).toEqual({ kind: 'album', id: '1A2b3C' })
-    expect(parseSpotify('spotify:track:6rqhFgbbKwnb9MLmUQDhG6')?.kind).toBe('track')
-    expect(parseSpotify('https://example.com/playlist/1')).toBeNull()
+  it('Spotify ya no se reproduce: se reconoce para explicarlo', () => {
+    expect(parseMusicInput('https://open.spotify.com/playlist/abc')).toBeNull()
+    expect(isSpotifyLink('https://open.spotify.com/playlist/abc?si=1')).toBe(true)
+    expect(isSpotifyLink('open.spotify.com/track/abc')).toBe(true)
+    expect(isSpotifyLink('spotify:track:6rqhFgbbKwnb9MLmUQDhG6')).toBe(true)
+    expect(isSpotifyLink('https://www.youtube.com/watch?v=jfKfPfyJRdk')).toBe(false)
   })
 
   it('elige el reproductor adecuado', () => {
-    expect(parseMusicInput('open.spotify.com/playlist/abc')).toBeNull()
-    expect(parseMusicInput('https://open.spotify.com/playlist/abc')?.provider).toBe('spotify')
     expect(parseMusicInput('youtu.be/jfKfPfyJRdk')?.provider).toBe('youtube')
     expect(isMusicUrl(u('https://music.youtube.com/watch?v=jfKfPfyJRdk'))).toBe(true)
     expect(isMusicUrl(u('https://www.youtube.com/watch?v=jfKfPfyJRdk'))).toBe(false)
+    expect(isMusicUrl(u('https://open.spotify.com/playlist/abc'))).toBe(false)
   })
 })
 

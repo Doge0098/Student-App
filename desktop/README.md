@@ -93,8 +93,7 @@ La app no lo usa directamente: pasa por `src/platform/index.ts`.
 - Ventana emergente de verdad (`window.open` con tamaño, p. ej. «Iniciar sesión con Google» en otra
   web) → **ventana pequeña de LockIn**: la web necesita seguir conectada con ella para terminar.
 - Botón «Iniciar sesión» de LockIn → ventana de LockIn con la página oficial. Google entra en la
-  sesión de las pestañas (Docs, Drive, Classroom…); Spotify en la de la app (su reproductor está en
-  el panel de Música).
+  sesión de las pestañas (Docs, Drive, Classroom, YouTube…).
 - Enlaces de la propia app (↗, «Descargar»…) → navegador del sistema.
 
 ### Modo Estricto
@@ -125,22 +124,6 @@ formulario, en las redirecciones y, como última barrera, en cualquier carga de 
 YouTube exige que su reproductor incrustado sepa qué app lo usa (cabecera `Referer`). Desde
 `app://` Chromium no la manda y salía «Error 153», así que LockIn añade `https://app.lockin.desktop/`
 solo a esas peticiones y solo si no llevan ya una.
-
-### Spotify y el DRM (Widevine)
-
-Spotify protege las canciones con **Widevine**, y el Electron normal **no lo trae**. Por eso, en
-escritorio, Spotify puede no sonar completo (como mucho las previas de 30 s). YouTube y YouTube
-Music funcionan sin problema.
-
-La opción conocida es **Electron for Content Security (ECS)** de castLabs, una versión de Electron
-con Widevine:
-
-1. Cambiar la dependencia `electron` por la de castLabs (`github:castlabs/electron-releases#v<versión>+wvcus`).
-2. Esperar a que el componente Widevine esté listo antes de abrir la ventana
-   (`app.whenReady()` + `components.whenReady()` en ECS).
-3. Para repartirlo en Windows y Mac, firmar el programa con su servicio **EVS** (cuenta gratuita).
-
-Mientras tanto, la app sigue funcionando: si Spotify no suena, se puede usar YouTube Music.
 
 ## Probar
 

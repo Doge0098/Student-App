@@ -16,7 +16,7 @@ const STEPS: { icon: ReactNode; title: string; text: string }[] = [
     title: 'Estudio',
     text: 'Busca, abre tus apps, toma notas, repasa con tarjetas o pregunta a la IA, sin salir de aquí.',
   },
-  { icon: <Headphones size={18} />, title: 'Música', text: 'YouTube, Spotify o sonidos para concentrarte.' },
+  { icon: <Headphones size={18} />, title: 'Música', text: 'YouTube Music o sonidos para concentrarte.' },
 ]
 
 export function WelcomeGuide({ open, onClose }: { open: boolean; onClose: () => void }) {

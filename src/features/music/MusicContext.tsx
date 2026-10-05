@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePersistentState } from '../../hooks/usePersistentState'
-import { fetchMeta, fetchTitle } from '../../lib/oembed'
+import { fetchTitle } from '../../lib/oembed'
 import { uid } from '../../lib/text'
 import { musicSourceUrl, parseMusicInput, type MusicSource } from '../../lib/web'
 import { AmbientProvider } from './AmbientContext'
+import { DEFAULT_STATIONS, cleanMusicData } from './musicData'
 import { useAutoPause } from './useAutoPause'
 
 export interface PlayerControls {
@@ -22,8 +23,6 @@ export interface Station {
   id: string
   name: string
   url: string
-  /** Portada guardada (Spotify). Las de YouTube se sacan del enlace. */
-  thumb?: string
 }
 
 export interface PlayerReport {
@@ -53,22 +52,15 @@ interface MusicContextValue {
   setVolume: (volume: number) => void
   addStation: (link: string, name?: string) => Promise<boolean>
   removeStation: (id: string) => void
-  updateStation: (id: string, patch: Partial<Pick<Station, 'name' | 'thumb'>>) => void
   /* Para los reproductores */
   report: (update: PlayerReport) => void
   registerControls: (controls: PlayerControls | null) => void
 }
 
-const DEFAULT_STATIONS: Station[] = [
-  { id: 'lofi-girl', name: 'Lofi Girl · radio para estudiar', url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' },
-  { id: 'deep-focus', name: 'Deep Focus', url: 'https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ' },
-  { id: 'lofi-beats', name: 'lofi beats', url: 'https://open.spotify.com/playlist/37i9dQZF1DWWQRwui0ExPn' },
-  { id: 'intense-studying', name: 'Intense Studying', url: 'https://open.spotify.com/playlist/37i9dQZF1DX8NTLI2TtZa6' },
-]
 
 const MusicContext = createContext<MusicContextValue | null>(null)
 
-/** Música (YouTube, Spotify) y sonidos ambiente, con la pausa automática de los descansos. Va dentro de TimerProvider. */
+/** Música (YouTube Music) y sonidos ambiente, con la pausa automática de los descansos. Va dentro de TimerProvider. */
 export function MusicProvider({ children }: { children: ReactNode }) {
   return (
     <AmbientProvider>
@@ -78,8 +70,14 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 }
 
 function MusicStateProvider({ children }: { children: ReactNode }) {
-  const [source, setSource] = usePersistentState<MusicSource | null>('music-source', null)
-  const [stations, setStations] = usePersistentState<Station[]>('music-stations', DEFAULT_STATIONS)
+  const [storedSource, setSource] = usePersistentState<MusicSource | null>('music-source', null)
+  const [storedStations, setStations] = usePersistentState<Station[]>('music-stations', DEFAULT_STATIONS)
+  // Spotify ya no está en LockIn: lo que se guardó de allí se descarta (y, si no queda nada, vuelven las de serie).
+  const { source, stations } = useMemo(() => cleanMusicData(storedSource, storedStations), [storedSource, storedStations])
+  useEffect(() => {
+    if (source !== storedSource) setSource(source)
+    if (stations !== storedStations) setStations(stations)
+  }, [source, stations, storedSource, storedStations, setSource, setStations])
   const [volume, setVolumeState] = usePersistentState('music-volume', 70)
   const [autoplay, setAutoplay] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -121,10 +119,8 @@ function MusicStateProvider({ children }: { children: ReactNode }) {
       const parsed = parseMusicInput(link)
       if (!parsed) return false
       const url = musicSourceUrl(parsed)
-      const meta = await fetchMeta(url)
-      const finalName = name?.trim() || meta?.title || 'Mi lista'
-      const thumb = meta?.thumbnail ?? undefined
-      setStations((prev) => [{ id: uid(), name: finalName, url, thumb }, ...prev.filter((s) => s.url !== url)])
+      const finalName = name?.trim() || (await fetchTitle(url)) || 'Mi lista'
+      setStations((prev) => [{ id: uid(), name: finalName, url }, ...prev.filter((s) => s.url !== url)])
       return true
     },
     [setStations],
@@ -132,12 +128,6 @@ function MusicStateProvider({ children }: { children: ReactNode }) {
 
   const removeStation = useCallback(
     (id: string) => setStations((prev) => prev.filter((s) => s.id !== id)),
-    [setStations],
-  )
-
-  const updateStation = useCallback(
-    (id: string, patch: Partial<Pick<Station, 'name' | 'thumb'>>) =>
-      setStations((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s))),
     [setStations],
   )
 
@@ -188,7 +178,6 @@ function MusicStateProvider({ children }: { children: ReactNode }) {
       setVolume,
       addStation,
       removeStation,
-      updateStation,
       report,
       registerControls,
     }),
@@ -207,7 +196,6 @@ function MusicStateProvider({ children }: { children: ReactNode }) {
       setVolume,
       addStation,
       removeStation,
-      updateStation,
       report,
       registerControls,
     ],

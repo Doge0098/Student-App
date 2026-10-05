@@ -309,9 +309,6 @@ try {
   const google = await loginWindow('https://accounts.google.com/', 'lockin-google')
   check('«Iniciar sesión con Google» abre una ventana de LockIn con la sesión de las pestañas', google?.session === 'web' && google.url.includes('google.'), JSON.stringify(google))
   await closeOthers()
-  const spotify = await loginWindow('https://accounts.spotify.com/', 'lockin-spotify')
-  check('«Iniciar sesión con Spotify» usa la sesión del reproductor (la de la app)', spotify?.session === 'app' && spotify.url.includes('spotify.com'), JSON.stringify(spotify))
-  await closeOthers()
 
   /* --- 6. Pestañas ocultas conservan su estado --- */
   const beforeSecond = firstId ? await guestUrl(firstId) : ''
@@ -383,15 +380,6 @@ try {
     return { url: g.url, text }
   }, 30000)
   check('Un vídeo de YouTube se ve en una pestaña (sin «Error 153»)', ytTab && !/Error 15\d/.test(ytTab.text), JSON.stringify(ytTab))
-  /* --- Informativo: DRM (Spotify completo) --- */
-  const widevine = await win.evaluate(() =>
-    navigator
-      .requestMediaKeySystemAccess('com.widevine.alpha', [{ initDataTypes: ['cenc'], audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }] }])
-      .then(() => 'disponible')
-      .catch((e) => `no disponible (${e.name})`),
-  )
-  console.log(`INFO  Widevine (DRM para Spotify completo): ${widevine}`)
-
   /* --- 10. La ventana de la app no se deja llevar a otra web --- */
   await win.evaluate(() => {
     location.href = 'https://example.net/'

@@ -1,4 +1,4 @@
-export type ServiceId = 'google' | 'spotify'
+export type ServiceId = 'google'
 
 interface ServiceInfo {
   name: string
@@ -21,11 +21,5 @@ export const SERVICES: Record<ServiceId, ServiceInfo> = {
     loginUrl: 'https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fwww.google.com%2F',
     switchUrl: 'https://accounts.google.com/AccountChooser?continue=https%3A%2F%2Fwww.google.com%2F',
     logoutUrl: 'https://accounts.google.com/Logout',
-  },
-  spotify: {
-    name: 'Spotify',
-    unlocks: 'Escuchar canciones completas en el reproductor de música (sin sesión solo suenan 30 s).',
-    loginUrl: 'https://accounts.spotify.com/es/login?continue=https%3A%2F%2Fopen.spotify.com%2F',
-    logoutUrl: 'https://www.spotify.com/logout/',
   },
 }

@@ -120,7 +120,7 @@ export type ShellPopup = 'deny' | 'login-window' | 'external'
 
 /**
  * Ventanas pedidas por la propia app:
- * - ventanas emergentes (inicio de sesión de Google o Spotify) → ventana de LockIn con la sesión de las webs;
+ * - ventanas emergentes (inicio de sesión de Google) → ventana de LockIn con la sesión de las webs;
  * - enlaces normales (↗, «Descargar»…) → navegador del sistema.
  */
 export function decideShellPopup(raw: unknown, disposition: Disposition): ShellPopup {
@@ -143,12 +143,11 @@ export function decideGuestPopup(raw: unknown, disposition: Disposition, blocked
 }
 
 /**
- * En qué sesión se abre una ventana de inicio de sesión pedida por la app.
- * Spotify se usa en el reproductor de Música (dentro de la app); lo demás (Google…) en las pestañas.
+ * En qué sesión se abre una ventana de inicio de sesión pedida por la app: la de las pestañas
+ * (Docs, Drive, Classroom y YouTube usan la cuenta de Google que se inicie ahí).
  */
-export function loginSessionFor(raw: unknown): 'shell' | 'web' {
-  const url = parseWebUrl(raw)
-  return url && ['spotify.com', 'scdn.co'].some((h) => hostMatches(url.hostname, h)) ? 'shell' : 'web'
+export function loginSessionFor(_raw: unknown): 'web' {
+  return 'web'
 }
 
 /* ------------------------------------------------------------------ */
@@ -182,7 +181,7 @@ const WEB_PERMISSIONS = new Set([
   'top-level-storage-access',
 ])
 
-/** Lo que pueden pedir los reproductores incrustados en la app (YouTube, Spotify): DRM y pantalla completa. */
+/** Lo que pueden pedir los reproductores incrustados en la app (YouTube): DRM y pantalla completa. */
 const EMBED_PERMISSIONS = new Set(['fullscreen', 'mediaKeySystem', 'storage-access'])
 
 export function decidePermission(permission: string, context: 'shell' | 'web', origin: string): PermissionDecision {

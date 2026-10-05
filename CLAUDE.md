@@ -15,7 +15,8 @@ para que no tengan que moverse de ella. Es para estudiantes **de todos los curso
 
 ## Requisitos del usuario (no cambiar sin preguntar)
 
-1. **Música integrada**: YouTube Music / YouTube y Spotify, controlables desde la propia página.
+1. **Música integrada**: **solo YouTube Music / YouTube** (Spotify se quitó el 6 oct 2026 por decisión del
+   usuario: sin cuenta solo da 30 s y no se puede controlar bien), controlable desde la propia página.
 2. **Tareas**: el estudiante las apunta y las tacha él mismo.
 3. **Navegador inteligente** de interfaz sencilla: clasifica solo lo que ve el estudiante
    y tiene una pestaña con varias opciones web para volver a lo que estaba haciendo.
@@ -23,7 +24,7 @@ para que no tengan que moverse de ella. Es para estudiantes **de todos los curso
    **"¿Quieres descansar o seguir?"**.
 5. **Suite de Google** (gratis): Drive, Docs, Hojas, Presentaciones, Classroom, Calendar,
    Gmail, Keep, Meet, Formularios, Traductor, Académico.
-6. **Inicio de sesión** en las funciones que lo necesiten (Google, Spotify).
+6. **Inicio de sesión** en las funciones que lo necesiten (Google; sirve también para YouTube Music).
 7. **Personalización**: claro/oscuro y colores de iconos y funciones, **solo colores predefinidos**.
 8. **Minimalista de verdad y fácil de entender**: nada decorativo que no aporte (p. ej. se quitó el
    círculo de progreso del temporizador). Wikipedia se queda.
@@ -63,8 +64,9 @@ para que no tengan que moverse de ella. Es para estudiantes **de todos los curso
     tipo de web (búsqueda, vídeo, Google, lectura…) y asignatura (Matemáticas, Historia…).
   - Las distracciones (Instagram, TikTok, Shorts, Netflix, juegos…) muestran un aviso antes de abrirse;
     durante el descanso no se avisa.
-- **Música**: APIs oficiales de reproductor (YouTube IFrame API y Spotify iFrame API). Los enlaces de
-  YouTube Music se reproducen con el reproductor de YouTube. Spotify sin sesión iniciada solo da 30 s.
+- **Música**: YouTube IFrame API. Los enlaces de YouTube Music se reproducen con el reproductor de
+  YouTube. Los enlaces de Spotify se rechazan con un aviso (`isSpotifyLink`); lo que alguien tuviera
+  guardado de Spotify se limpia al arrancar (`cleanMusicData` en `music/musicData.ts`).
 - **Temporizador**: guarda la hora de fin (`endsAt`), no una cuenta atrás, para no desajustarse en
   segundo plano. Sonido con Web Audio + notificación del navegador. La duración se elige con − / +
   (de 5 en 5, mínimo 30); el descanso se elige en el aviso final.
@@ -109,7 +111,7 @@ para que no tengan que moverse de ella. Es para estudiantes **de todos los curso
   (construida desde `dist/`); las webs van en `<webview>` con la sesión `persist:lockin-web`; el puente
   es `window.lockinDesktop` (preload). Los enlaces «en pestaña nueva» se abren como pestañas de LockIn
   (`platform.onOpenTab`). El modo Estricto bloquea en tres capas (will-frame-navigate, will-redirect,
-  webRequest). Spotify completo necesita Widevine (castLabs ECS, pendiente). Comandos: `npm run desktop`,
+  webRequest). Comandos: `npm run desktop`,
   `npm run desktop:dist`, `npm run desktop:smoke` (en Linux con xvfb-run). Ver `desktop/README.md`.
 - **CSS**: `styles.css` se importa antes que la app, así el CSS de cada función puede ajustar la base.
 - **App descargable**: PWA (`public/manifest.webmanifest`, `public/sw.js`, iconos PNG) con botón
@@ -124,8 +126,7 @@ para que no tengan que moverse de ella. Es para estudiantes **de todos los curso
   dejan mostrar dentro y no se sabe qué página exacta ve el estudiante.
 - Programa de escritorio (Electron recomendado, porque lleva su propio Chromium): todas las webs dentro,
   se sabe qué está viendo, sesiones dentro de la app, bloqueo de distracciones más fuerte. Contras:
-  hay que instalarlo (en ordenadores del centro a veces no se puede), no vale en Chromebooks, y Spotify
-  necesita trabajo extra por la protección anticopia (DRM).
+  hay que instalarlo (en ordenadores del centro a veces no se puede), no vale en Chromebooks.
 - Se puede reutilizar casi todo el código React actual dentro de Electron.
 
 ## Estructura
@@ -149,7 +150,7 @@ src/
     browser/      espacio «Estudio»: Inicio, Apps, Notas, Repasar, IA y webs; guard.ts (modos)
     store/        tienda de apps de estudio (catalog.ts + AppStore.tsx, recomendaciones por curso)
     profile/      curso, modo de estudio, mis distracciones (profile.ts + StudySettings)
-    accounts/     inicio de sesión en Google y Spotify
+    accounts/     inicio de sesión en Google
     data/         copia de seguridad (exportar/importar/borrar)
     settings/     apariencia (colores, tema), ventana de Ajustes y guía de bienvenida
   App.tsx         maquetación: izquierda (concentración + tareas), centro (Estudio), derecha (música)
@@ -176,21 +177,20 @@ desktop/          versión de escritorio con Electron (su propio package.json)
      `ConnectionPanel`).
   2. Música: el panel tiene **aspecto de app de móvil** (pestañas Ahora / Biblioteca / Ambiente abajo,
      portada y controles grandes, mini reproductor, biblioteca de listas con portadas) y los enlaces de
-     YouTube se muestran como «YouTube Music». Se puede iniciar sesión en Google (YouTube Music) y
-     Spotify desde Biblioteca. Los reproductores no se desmontan al cambiar de pestaña.
+     YouTube se muestran como «YouTube Music». Se puede iniciar sesión en Google (YouTube Music) desde
+     Biblioteca. Los reproductores no se desmontan al cambiar de pestaña.
 - **Límite conocido:** traer solas las listas y recomendaciones de la cuenta del estudiante necesitaría las
-  APIs de Spotify/YouTube con OAuth (registrar una app; Spotify limita a pocos usuarios en modo
-  desarrollo). Por eso las listas se guardan pegando su enlace (hay una guía en la propia pestaña).
+  la API de YouTube con OAuth (crear un proyecto en Google Cloud y pedir la verificación de Google para
+  uso público). Por eso las listas se guardan pegando su enlace (hay una guía en la propia pestaña).
 
 ## Estado y próximos pasos
 
-- [x] Fase 1 (MVP web): temporizador, aviso "¿descansar o seguir?", tareas, música (YouTube/Spotify),
+- [x] Fase 1 (MVP web): temporizador, aviso "¿descansar o seguir?", tareas, música (YouTube),
       navegador con clasificación y "Continuar donde lo dejaste", accesos y "Crear nuevo" de Google,
       tema claro/oscuro, diseño adaptado a móvil. Probado en Chromium.
 - [x] Wikipedia **se queda** (buscador y acceso rápido): el usuario la considera útil.
 - [x] Fase 2:
-  - Inicio de sesión en lo que lo necesita (Google: Docs/Drive/Classroom/YouTube; Spotify: canciones
-    completas). Siempre en la página oficial (ventana emergente), nunca pedimos contraseñas en la app.
+  - Inicio de sesión en lo que lo necesita (Google: Docs/Drive/Classroom/YouTube). Siempre en la página oficial (ventana emergente), nunca pedimos contraseñas en la app.
     Al volver, se recargan los reproductores/pestañas que usan esa cuenta.
   - Personalización: interruptor claro/oscuro (+ automático), color principal y color de cada función
     (temporizador, tareas, navegador, música) elegidos de una **paleta de colores predefinidos**
@@ -211,5 +211,5 @@ desktop/          versión de escritorio con Electron (su propio package.json)
 - [ ] Publicar instaladores de escritorio (GitHub Releases con electron-builder en Windows/Mac/Linux).
 - [ ] Integración real con Google (OAuth): ver archivos de Drive, eventos de Calendar y sincronizar
       tareas con Google Tasks. Requiere crear un proyecto gratuito en Google Cloud.
-- [ ] Escritorio: Spotify completo (Widevine con castLabs ECS), firma de código y actualizaciones.
+- [ ] Escritorio: firma de código y actualizaciones.
 - [ ] Clasificación con IA opcional para afinar las asignaturas.

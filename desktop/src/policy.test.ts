@@ -112,10 +112,8 @@ describe('ventanas nuevas', () => {
     expect(decideGuestPopup('javascript:alert(1)', 'new-window', blocked)).toBe('deny')
   })
 
-  it('Spotify inicia sesión junto al reproductor; Google junto a las pestañas', () => {
-    expect(loginSessionFor('https://accounts.spotify.com/login')).toBe('shell')
+  it('el inicio de sesión (Google) usa la sesión de las pestañas', () => {
     expect(loginSessionFor('https://accounts.google.com/ServiceLogin')).toBe('web')
-    expect(loginSessionFor('https://notspotify.com/')).toBe('web')
   })
 })
 
@@ -124,10 +122,10 @@ describe('permisos', () => {
     expect(decidePermission('notifications', 'shell', 'app://lockin')).toBe('allow')
     expect(decidePermission('fullscreen', 'shell', 'app://lockin')).toBe('allow')
     expect(decidePermission('media', 'shell', 'app://lockin')).toBe('deny')
-    // Los reproductores incrustados (YouTube, Spotify) solo piden DRM o pantalla completa; nada más.
+    // Los reproductores incrustados (YouTube) solo piden DRM o pantalla completa; nada más.
     expect(decidePermission('notifications', 'shell', 'https://www.youtube.com')).toBe('deny')
-    expect(decidePermission('media', 'shell', 'https://open.spotify.com')).toBe('deny')
-    expect(decidePermission('mediaKeySystem', 'shell', 'https://open.spotify.com')).toBe('allow')
+    expect(decidePermission('media', 'shell', 'https://www.youtube.com')).toBe('deny')
+    expect(decidePermission('mediaKeySystem', 'shell', 'https://www.youtube.com')).toBe('allow')
     expect(decidePermission('fullscreen', 'shell', 'https://www.youtube.com')).toBe('allow')
     expect(decidePermission('fullscreen', 'shell', 'file://')).toBe('deny')
   })
@@ -135,7 +133,7 @@ describe('permisos', () => {
   it('las webs: cámara y micrófono se preguntan; notificaciones y ubicación no', () => {
     expect(decidePermission('media', 'web', 'https://meet.google.com')).toBe('ask')
     expect(decidePermission('fullscreen', 'web', 'https://www.youtube.com')).toBe('allow')
-    expect(decidePermission('mediaKeySystem', 'web', 'https://open.spotify.com')).toBe('allow')
+    expect(decidePermission('mediaKeySystem', 'web', 'https://www.youtube.com')).toBe('allow')
     expect(decidePermission('notifications', 'web', 'https://web.whatsapp.com')).toBe('deny')
     expect(decidePermission('geolocation', 'web', 'https://example.com')).toBe('deny')
     expect(decidePermission('usb', 'web', 'https://example.com')).toBe('deny')

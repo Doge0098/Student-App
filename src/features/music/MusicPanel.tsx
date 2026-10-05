@@ -1,16 +1,14 @@
 import { AudioLines, Disc3, Headphones, Library, ListMusic, LogIn, Pause, Play, Plus, SkipBack, SkipForward, Volume2, X } from 'lucide-react'
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import { Panel } from '../../components/Panel'
 import { useToast } from '../../components/Toast'
 import { useStore } from '../../hooks/store'
-import { fetchMeta } from '../../lib/oembed'
-import { musicSourceUrl, parseMusicInput } from '../../lib/web'
+import { isSpotifyLink, musicSourceUrl, parseMusicInput } from '../../lib/web'
 import { useAccounts } from '../accounts/AccountsContext'
 import { AmbientControls } from './AmbientControls'
-import { coverUrl, providerLabel } from './covers'
+import { coverUrl } from './covers'
 import { useMusic, type Station } from './MusicContext'
 import { autoPauseStore } from './musicStores'
-import { SpotifyPlayer } from './SpotifyPlayer'
 import { YouTubePlayer } from './YouTubePlayer'
 import './music.css'
 
@@ -22,8 +20,8 @@ const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
   { id: 'ambiente', label: 'Ambiente', icon: <AudioLines size={20} /> },
 ]
 
-function Cover({ link, thumb, big = false }: { link: string; thumb?: string; big?: boolean }) {
-  const url = coverUrl(link, thumb)
+function Cover({ link, big = false }: { link: string; big?: boolean }) {
+  const url = coverUrl(link)
   // Si la portada no carga (sin conexión, enlace caído), se queda el icono en vez de una imagen rota.
   const [failed, setFailed] = useState<string | null>(null)
   const show = url !== null && failed !== url
@@ -50,9 +48,9 @@ function StationCard({ station, active, playing, onPlay, onRemove }: StationCard
   return (
     <li className={`station-card ${active ? 'is-active' : ''}`}>
       <button type="button" className="station-card-main" onClick={onPlay} aria-label={`${active && playing ? 'Pausar' : 'Poner'} ${station.name}`}>
-        <Cover link={station.url} thumb={station.thumb} />
+        <Cover link={station.url} />
         <span className="station-card-name">{station.name}</span>
-        <span className="station-card-provider">{active && playing ? 'Sonando' : providerLabel(station.url)}</span>
+        <span className="station-card-provider">{active && playing ? 'Sonando' : 'YouTube Music'}</span>
       </button>
       {onRemove && (
         <button type="button" className="icon-btn station-card-remove" aria-label={`Quitar ${station.name}`} title="Quitar" onClick={onRemove}>
@@ -76,30 +74,6 @@ export function MusicPanel() {
   const current = stations.find((s) => s.url === currentUrl)
   const valid = parseMusicInput(link) !== null
 
-  // Las listas de Spotify traen su portada al preguntar a Spotify: se guarda una vez.
-  const missing = stations
-    .filter((s) => !s.thumb && parseMusicInput(s.url)?.provider === 'spotify')
-    .map((s) => s.id)
-    .join(',')
-  useEffect(() => {
-    if (!missing || tab !== 'biblioteca') return
-    let cancelled = false
-    const ids = missing.split(',')
-    void (async () => {
-      for (const id of ids) {
-        const station = music.stations.find((s) => s.id === id)
-        if (!station) continue
-        const meta = await fetchMeta(station.url)
-        if (cancelled) return
-        if (meta?.thumbnail) music.updateStation(id, { thumb: meta.thumbnail })
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [missing, tab])
-
   const choose = (station: Station) => {
     if (station.url === currentUrl) music.toggle()
     else music.play(station.url)
@@ -109,7 +83,11 @@ export function MusicPanel() {
   const addLink = async (e: FormEvent) => {
     e.preventDefault()
     if (!valid) {
-      toast('Pega un enlace de YouTube, YouTube Music o Spotify.')
+      toast(
+        isSpotifyLink(link)
+          ? 'Spotify ya no está en LockIn: usa un enlace de YouTube Music.'
+          : 'Pega un enlace de YouTube o YouTube Music.',
+      )
       return
     }
     setSaving(true)
@@ -127,10 +105,7 @@ export function MusicPanel() {
         <div className="phone-screen">
           {/* Los reproductores no se desmontan al cambiar de pestaña: la música sigue sonando. */}
           <div className={`phone-stage ${tab === 'ahora' && source ? '' : 'is-collapsed'}`}>
-            {source?.provider === 'youtube' && <YouTubePlayer key={currentUrl} videoId={source.videoId} listId={source.listId} />}
-            {source?.provider === 'spotify' && (
-              <SpotifyPlayer key={`${currentUrl}-${accounts.versions.spotify}`} kind={source.kind} id={source.id} />
-            )}
+            {source && <YouTubePlayer key={currentUrl} videoId={source.videoId} listId={source.listId} />}
           </div>
 
           {tab === 'ahora' && (
@@ -141,7 +116,7 @@ export function MusicPanel() {
                     <h3 className="phone-title" title={music.title}>
                       {music.title || current?.name || 'Cargando…'}
                     </h3>
-                    <span className="phone-sub">{providerLabel(currentUrl ?? '')}</span>
+                    <span className="phone-sub">YouTube Music</span>
                   </div>
                   {music.error && <p className="error-text">{music.error}</p>}
                   <div className="phone-controls">
@@ -160,15 +135,10 @@ export function MusicPanel() {
                       <SkipForward size={22} />
                     </button>
                   </div>
-                  {source.provider === 'youtube' && (
-                    <label className="volume">
-                      <Volume2 size={16} aria-hidden="true" />
-                      <input type="range" min={0} max={100} value={music.volume} aria-label="Volumen" onChange={(e) => music.setVolume(Number(e.target.value))} />
-                    </label>
-                  )}
-                  {source.provider === 'spotify' && (
-                    <p className="hint">Con tu cuenta de Spotify iniciada suenan las canciones completas (sin ella, 30 s).</p>
-                  )}
+                  <label className="volume">
+                    <Volume2 size={16} aria-hidden="true" />
+                    <input type="range" min={0} max={100} value={music.volume} aria-label="Volumen" onChange={(e) => music.setVolume(Number(e.target.value))} />
+                  </label>
                 </>
               ) : (
                 <div className="phone-empty">
@@ -191,10 +161,11 @@ export function MusicPanel() {
 
           {tab === 'biblioteca' && (
             <div className="phone-page">
-              <h3 className="phone-heading">Tus cuentas</h3>
+              <h3 className="phone-heading">Tu cuenta</h3>
               <p className="hint">
-                Entra para oír las canciones completas con tu cuenta. Tus listas y recomendaciones las abres desde la app de
-                cada servicio; aquí guardas las que quieras escuchar mientras estudias.
+                Entra con tu cuenta de Google para oír YouTube Music como en tu móvil (por ejemplo, sin anuncios si tienes
+                Premium). Tus listas las abres en la app de YouTube Music; aquí guardas las que quieras escuchar mientras
+                estudias.
               </p>
               <ul className="phone-accounts">
                 <li className="phone-account">
@@ -203,15 +174,6 @@ export function MusicPanel() {
                     <span>Entra con tu cuenta de Google.</span>
                   </span>
                   <button type="button" className="btn btn-small" onClick={() => accounts.login('google')}>
-                    <LogIn size={14} /> Entrar
-                  </button>
-                </li>
-                <li className="phone-account">
-                  <span className="phone-account-text">
-                    <strong>Spotify</strong>
-                    <span>Para oír las canciones completas.</span>
-                  </span>
-                  <button type="button" className="btn btn-small" onClick={() => accounts.login('spotify')}>
                     <LogIn size={14} /> Entrar
                   </button>
                 </li>
@@ -242,21 +204,22 @@ export function MusicPanel() {
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
                   placeholder="Pegar enlace de una lista…"
-                  aria-label="Enlace de YouTube, YouTube Music o Spotify"
+                  aria-label="Enlace de YouTube o YouTube Music"
                 />
                 <button type="submit" className="btn btn-primary btn-icon" aria-label="Añadir a mi biblioteca" disabled={!valid || saving}>
                   <Plus size={18} />
                 </button>
               </form>
+              {isSpotifyLink(link) && (
+                <p className="hint" role="status">
+                  Spotify ya no está en LockIn. Usa un enlace de una lista de YouTube Music.
+                </p>
+              )}
               <details className="phone-guide">
                 <summary>¿Cómo copio el enlace de mi lista?</summary>
                 <ul>
                   <li>
                     <strong>YouTube Music:</strong> abre la lista, pulsa los tres puntos ⋮ → «Compartir» → «Copiar enlace».
-                  </li>
-                  <li>
-                    <strong>Spotify:</strong> abre la lista, pulsa los tres puntos ··· → «Compartir» → «Copiar enlace de la
-                    lista».
                   </li>
                 </ul>
               </details>
@@ -277,7 +240,7 @@ export function MusicPanel() {
         {source && tab !== 'ahora' && (
           <div className="phone-mini">
             <button type="button" className="phone-mini-main" onClick={() => setTab('ahora')} aria-label="Abrir el reproductor">
-              <Cover link={currentUrl ?? ''} thumb={current?.thumb} />
+              <Cover link={currentUrl ?? ''} />
               <span className="phone-mini-title">{music.title || current?.name || 'Música'}</span>
             </button>
             <button type="button" className="icon-btn" aria-label={music.isPlaying ? 'Pausar' : 'Reproducir'} onClick={music.toggle}>

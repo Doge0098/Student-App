@@ -145,9 +145,8 @@ function popupWindowOptions(): BrowserWindowConstructorOptions {
 const loginWindows = new Map<'shell' | 'web', BrowserWindow>()
 
 /**
- * Inicio de sesión de Google o Spotify (botón «Iniciar sesión» de LockIn). Se hace en la página
- * oficial, en una ventana de LockIn que comparte sesión con las pestañas (Google) o con el
- * reproductor de música (Spotify), para que la cuenta sirva dentro de la app.
+ * Inicio de sesión de Google (botón «Iniciar sesión» de LockIn). Se hace en la página oficial, en una
+ * ventana de LockIn que comparte sesión con las pestañas, para que la cuenta sirva dentro de la app.
  */
 export function openLoginWindow(url: string): void {
   const kind = loginSessionFor(url)
@@ -164,8 +163,8 @@ export function openLoginWindow(url: string): void {
     title: 'Iniciar sesión',
     webPreferences: {
       ...safeWebPreferences(),
-      // Spotify: la sesión de la app (su reproductor está en el panel de Música). Lo demás: la de las pestañas.
-      ...(kind === 'web' ? { partition: WEB_PARTITION } : {}),
+      // La sesión de las pestañas, la misma que usan Docs, Drive, Classroom y YouTube.
+      partition: WEB_PARTITION,
     },
   })
   loginWindows.set(kind, win)
