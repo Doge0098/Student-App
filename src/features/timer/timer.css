@@ -1,0 +1,129 @@
+/* ------------------------------------------------------------------ */
+/* Temporizador: tarea del bloque, enlace al progreso y aviso final.   */
+/* (El reloj y los botones básicos están en styles.css.)               */
+/* ------------------------------------------------------------------ */
+
+/* «¿En qué vas a trabajar?» (opcional, con el reloj parado) */
+.timer-task-picker {
+  width: 100%;
+  font-size: 13.5px;
+  padding: 7px 10px;
+  text-overflow: ellipsis;
+}
+
+.timer-task-picker:has(option[value='']:checked) {
+  color: var(--text-muted);
+}
+
+.timer-task-picker option {
+  color: var(--text);
+}
+
+/* Tarea en la que está trabajando, bajo el reloj */
+.timer-task {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: -4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.timer-task svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.timer-task-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* «Hoy llevas X min de estudio» abre «Tu progreso» */
+.timer-stats-btn {
+  align-self: center;
+  max-width: 100%;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+
+.timer-stats-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.timer-stats .timer-stats-chart {
+  color: var(--accent);
+}
+
+/* Aviso final: «¿Has terminado esta tarea?» */
+.prompt-task {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  text-align: left;
+}
+
+.prompt-task-question {
+  float: left;
+  width: 100%;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.prompt-task-row {
+  clear: both;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.prompt-task-row input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.prompt-task-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.prompt-task-text.is-done {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+/* Solo para lectores de pantalla */
+.timer-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -35,13 +35,28 @@ export function SpotifyPlayer({ kind, id }: SpotifyPlayerProps) {
             return
           }
           controller = c
-          registerControls({ play: () => c.play(), toggle: () => c.togglePlay() })
+          let paused = true
+          registerControls({
+            play: () => c.play(),
+            toggle: () => c.togglePlay(),
+            // pause/resume no existen en todas las versiones del reproductor: si faltan, se usa togglePlay.
+            pause: () => {
+              if (typeof c.pause === 'function') c.pause()
+              else if (!paused) c.togglePlay()
+            },
+            resume: () => {
+              if (typeof c.resume === 'function') c.resume()
+              else if (paused) c.togglePlay()
+            },
+          })
           report({ error: null })
           c.addListener('ready', () => {
             if (autoplayRef.current) c.play()
           })
           c.addListener('playback_update', (e) => {
-            if (e.data?.isPaused !== undefined) report({ isPlaying: !e.data.isPaused })
+            if (e.data?.isPaused === undefined) return
+            paused = e.data.isPaused
+            report({ isPlaying: !paused })
           })
         })
       })

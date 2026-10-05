@@ -1,18 +1,27 @@
 /**
- * Todo lo que cambia entre la versión web y la futura versión de escritorio pasa por aquí.
+ * Todo lo que cambia entre la versión web y la versión de escritorio pasa por aquí.
  *
- * La versión de escritorio (Electron) expondrá `window.lockinDesktop` desde su script de
- * precarga. Con ese puente la app podrá mostrar cualquier web dentro (sin las limitaciones de los
- * iframes), abrir programas instalados, etc. Sin él, se usa lo que permite un navegador normal.
+ * La versión de escritorio (Electron, carpeta desktop/) expone `window.lockinDesktop` desde su
+ * script de precarga. Con ese puente la app muestra cualquier web dentro (pestañas <webview>, sin
+ * las limitaciones de los iframes), sabe qué página ve el estudiante y abre los enlaces externos en
+ * el navegador del sistema. Sin él, se usa lo que permite un navegador normal.
  */
 export interface DesktopBridge {
   version: string
+  /** Sistema operativo ('win32', 'darwin', 'linux'). */
+  platform?: string
   /** Abre un enlace en el navegador del sistema. */
   openExternal: (url: string) => void
   /** Webs (dominios) que no se pueden abrir ahora dentro de las pestañas, ni siguiendo enlaces. */
   setBlockedSites: (hosts: string[]) => void
   /** Avisa cuando se ha impedido abrir una web bloqueada. Devuelve la función para dejar de escuchar. */
   onBlockedNavigation: (callback: (url: string) => void) => () => void
+  /**
+   * Una web abierta en una pestaña pide abrir un enlace en una pestaña nueva (target=_blank,
+   * window.open, «Abrir enlace en una pestaña nueva» del botón derecho). Devuelve la función para
+   * dejar de escuchar. Si nadie escucha, el enlace se abre en el navegador del sistema.
+   */
+  onOpenTab?: (callback: (url: string) => void) => () => void
 }
 
 declare global {
@@ -40,6 +49,11 @@ export const platform = {
     return Boolean(bridge()) || window.matchMedia('(display-mode: standalone)').matches
   },
 
+  /** Versión de LockIn para ordenador (null en la web). */
+  get desktopVersion(): string | null {
+    return bridge()?.version || null
+  },
+
   openExternal(url: string): void {
     const desktop = bridge()
     if (desktop) desktop.openExternal(url)
@@ -56,5 +70,10 @@ export const platform = {
 
   onBlockedNavigation(callback: (url: string) => void): () => void {
     return bridge()?.onBlockedNavigation(callback) ?? (() => {})
+  },
+
+  /** Solo escritorio: una web pide abrir un enlace en una pestaña nueva de LockIn (ver DesktopBridge). */
+  onOpenTab(callback: (url: string) => void): () => void {
+    return bridge()?.onOpenTab?.(callback) ?? (() => {})
   },
 }

@@ -1,10 +1,11 @@
-import { ArrowRight, Compass, ExternalLink, House, Info, LayoutGrid, RotateCcw, TriangleAlert, X } from 'lucide-react'
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { ArrowRight, Compass, ExternalLink, House, Info, LayoutGrid, Lock, RotateCcw, TriangleAlert, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Modal } from '../../components/Modal'
 import { Panel } from '../../components/Panel'
 import { useToast } from '../../components/Toast'
 import { usePersistentState } from '../../hooks/usePersistentState'
 import { fetchTitle } from '../../lib/oembed'
+import { SUBJECTS, type SubjectId } from '../../lib/subjects'
 import { uid } from '../../lib/text'
 import { formatClock } from '../../lib/time'
 import {
@@ -12,25 +13,28 @@ import {
   categorize,
   deriveTitle,
   detectSubjectForUrl,
-  getDistraction,
-  getMessagingApp,
   getEmbed,
   isMusicUrl,
   pageKey,
   parseYouTube,
   resolveInput,
   siteName,
+  type EmbedInfo,
   type SearchEngineId,
 } from '../../lib/web'
 import { platform } from '../../platform'
 import { useAccounts } from '../accounts/AccountsContext'
 import { LoginButton } from '../accounts/LoginButton'
 import { useMusic } from '../music/MusicContext'
+import { useProfile } from '../profile/profile'
 import { useRemainingMs, useTimer } from '../timer/TimerContext'
 import { AppStore } from '../store/AppStore'
 import { DEFAULT_MY_APPS, type StoreApp } from '../store/catalog'
 import { BrowserFrame } from './BrowserFrame'
 import { BrowserHome } from './BrowserHome'
+import { blockedSites, checkSite, timerFlags, type GuardContext, type GuardVerdict } from './guard'
+import { navigateTab, retitleHistory } from './navigation'
+import { openAllMessage, planOpenAll } from './openAll'
 import { SiteIcon } from './SiteIcon'
 import type { BrowserTab, HistoryItem } from './types'
 
@@ -45,23 +49,62 @@ function trimHistory(items: HistoryItem[]): HistoryItem[] {
   return [...pinned, ...rest]
 }
 
+/** Cómo se ve una web dentro de la app (null = solo en una pestaña nueva del navegador). */
+function embedFor(url: URL): EmbedInfo | null {
+  return getEmbed(url) ?? (platform.canEmbedAnySite ? { src: url.href } : null)
+}
+
+function parseUrl(raw: string): URL | null {
+  try {
+    const url = new URL(raw)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url : null
+  } catch {
+    return null
+  }
+}
+
+/** Una web que pide aviso o está bloqueada, esperando respuesta. */
+interface PendingOpen {
+  url: string
+  verdict: GuardVerdict
+}
+
 export function StudyBrowser() {
   const timer = useTimer()
   const music = useMusic()
   const accounts = useAccounts()
   const toast = useToast()
+  const profile = useProfile()
   const [history, setHistory] = usePersistentState<HistoryItem[]>('browser-history', [])
   const [tabs, setTabs] = usePersistentState<BrowserTab[]>('browser-tabs', [])
   const [activeId, setActiveId] = usePersistentState<string>('browser-active', HOME)
   const [engine, setEngine] = usePersistentState<SearchEngineId>('browser-engine', 'google')
   const [myApps, setMyApps] = usePersistentState<string[]>('my-apps', DEFAULT_MY_APPS)
   const [address, setAddress] = useState('')
-  const [pending, setPending] = useState<{ url: string; label: string; messaging: boolean } | null>(null)
+  const [pending, setPending] = useState<PendingOpen | null>(null)
   // Las pestañas guardadas solo se cargan cuando se abren, no todas a la vez al entrar.
   const [loaded, setLoaded] = useState<Set<string>>(() => new Set([activeId]))
 
   const activeTab = tabs.find((t) => t.id === activeId) ?? null
   const showStore = activeId === STORE
+
+  // Modo de estudio + temporizador: qué se abre, qué pide aviso y qué queda bloqueado.
+  const guard: GuardContext = { mode: profile.mode, extraDistractions: profile.extraDistractions, ...timerFlags(timer) }
+
+  // En escritorio, las webs bloqueadas tampoco se abren pulsando enlaces dentro de una página.
+  const blockedKey = blockedSites(guard).join(' ')
+  useEffect(() => {
+    platform.setBlockedSites(blockedKey ? blockedKey.split(' ') : [])
+  }, [blockedKey])
+
+  useEffect(
+    () =>
+      platform.onBlockedNavigation((raw) => {
+        const url = parseUrl(raw)
+        toast(`${url ? siteName(url) : 'Esa web'} está bloqueada hasta el descanso (modo Estricto).`)
+      }),
+    [toast],
+  )
 
   // Tras iniciar sesión en Google se recargan los documentos abiertos para que usen la cuenta.
   const googleVersion = accounts.versions.google
@@ -118,7 +161,7 @@ export function StudyBrowser() {
   const launch = (url: URL, shouldRecord: boolean) => {
     const title = deriveTitle(url)
     if (shouldRecord) record(url, title)
-    const embed = getEmbed(url) ?? (platform.canEmbedAnySite ? { src: url.href } : null)
+    const embed = embedFor(url)
 
     if (embed) {
       const key = pageKey(url)
@@ -152,19 +195,38 @@ export function StudyBrowser() {
       return
     }
 
-    const distraction = getDistraction(url)
-    const onBreak = timer.phase === 'break' && timer.status === 'running'
-    if (distraction && !onBreak) {
-      setPending({ url: url.href, label: distraction, messaging: false })
+    // Distracciones y mensajería: se abren, se avisa o se bloquean según el modo (ver distractionPolicy).
+    const verdict = checkSite(url, guard)
+    if (verdict.action !== 'allow') {
+      setPending({ url: url.href, verdict })
       return
     }
-    // La mensajería no es una distracción en sí: solo se avisa en mitad de un bloque de concentración.
-    const messaging = getMessagingApp(url)
-    if (messaging && timer.phase === 'focus' && timer.status === 'running') {
-      setPending({ url: url.href, label: messaging, messaging: true })
-      return
+    // Las distracciones no se guardan en el historial aunque se abran (p. ej. en el descanso).
+    launch(url, shouldRecord && verdict.kind !== 'distraction')
+  }
+
+  /** «Abrir todo» de una asignatura: dentro las que se dejan; las de fuera no se abren todas de golpe. */
+  const openAll = (items: HistoryItem[], subject: SubjectId) => {
+    const plan = planOpenAll(items, tabs, {
+      maxTabs: MAX_TABS,
+      embed: embedFor,
+      allowed: (url) => checkSite(url, guard).action === 'allow',
+      makeId: uid,
+    })
+    setTabs(plan.tabs)
+    let firstExternal: string | null = null
+    if (plan.activeId) {
+      activate(plan.activeId)
+    } else if (plan.external.length > 0) {
+      // Una sola pestaña nueva (el navegador bloquearía más de una y distraería).
+      const first = plan.external[0]
+      const url = parseUrl(first.url)
+      if (url) {
+        launch(url, false)
+        firstExternal = first.title
+      }
     }
-    launch(url, shouldRecord && !distraction)
+    toast(openAllMessage(plan, { subject: SUBJECTS[subject]?.label ?? 'esta asignatura', maxTabs: MAX_TABS, firstExternal }))
   }
 
   const openApp = (app: StoreApp) => {
@@ -197,6 +259,33 @@ export function StudyBrowser() {
 
   const reloadTab = (id: string) =>
     setTabs((prev) => prev.map((t) => (t.id === id ? { ...t, reloads: t.reloads + 1 } : t)))
+
+  /**
+   * Solo en escritorio: el estudiante ha pulsado un enlace dentro de una pestaña (o la página ha
+   * cambiado de título). Se actualiza la pestaña y se guarda la página real en el historial.
+   */
+  const handleNavigate = (tabId: string, rawUrl: string, rawTitle: string) => {
+    const tab = tabs.find((t) => t.id === tabId)
+    const nav = tab ? navigateTab(tab, rawUrl, rawTitle) : null
+    if (!tab || !nav) return
+    setTabs((prev) => prev.map((t) => (t.id === tabId ? nav.tab : t)))
+
+    const verdict = checkSite(nav.url, guard)
+    if (verdict.kind === 'distraction') {
+      // No se guarda en el historial; si ahora no toca, se le recuerda.
+      if (!nav.samePage && verdict.action !== 'allow') toast(`Ojo: ${verdict.label} es una distracción.`)
+      return
+    }
+    if (nav.samePage) setHistory((prev) => retitleHistory(prev, nav.url, nav.title, tab.title))
+    else record(nav.url, nav.title)
+  }
+
+  // El aviso de navegación llega desde la vista de escritorio, que puede guardar la función: siempre la última.
+  const navigateRef = useRef(handleNavigate)
+  useEffect(() => {
+    navigateRef.current = handleNavigate
+  })
+  const onNavigate = useCallback((tabId: string, url: string, title: string) => navigateRef.current(tabId, url, title), [])
 
   const updateItem = (id: string, patch: Partial<HistoryItem>) =>
     setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)))
@@ -288,7 +377,7 @@ export function StudyBrowser() {
         )}
       </div>
 
-      {activeTab?.hint && (
+      {activeTab?.hint && !(activeTab.hint === 'search' && platform.canEmbedAnySite) && (
         <div className="frame-hint">
           <Info size={14} aria-hidden="true" />
           <span>
@@ -307,6 +396,7 @@ export function StudyBrowser() {
             myApps={myApps}
             onOpen={open}
             onOpenApp={openApp}
+            onOpenAll={openAll}
             onShowStore={() => activate(STORE)}
             onUpdate={updateItem}
             onRemove={(id) => setHistory((prev) => prev.filter((h) => h.id !== id))}
@@ -317,22 +407,16 @@ export function StudyBrowser() {
         )}
         {tabs.map((tab) =>
           loaded.has(tab.id) ? (
-            <BrowserFrame
-              key={`${tab.id}-${tab.reloads}`}
-              src={tab.src}
-              title={tab.title}
-              hidden={tab.id !== activeTab?.id}
-            />
+            <TabFrame key={`${tab.id}-${tab.reloads}`} tab={tab} hidden={tab.id !== activeTab?.id} onNavigate={onNavigate} />
           ) : null,
         )}
       </div>
 
       <DistractionModal
-        label={pending?.label ?? null}
-        messaging={pending?.messaging ?? false}
+        pending={pending}
         onCancel={() => setPending(null)}
         onConfirm={() => {
-          if (pending) launch(new URL(pending.url), false)
+          if (pending && pending.verdict.action === 'warn') launch(new URL(pending.url), false)
           setPending(null)
         }}
       />
@@ -340,39 +424,70 @@ export function StudyBrowser() {
   )
 }
 
+interface TabFrameProps {
+  tab: BrowserTab
+  hidden: boolean
+  onNavigate: (tabId: string, url: string, title: string) => void
+}
+
+/** Página de una pestaña. Si luego navega dentro (escritorio), no se recarga: la dirección inicial se queda. */
+function TabFrame({ tab, hidden, onNavigate }: TabFrameProps) {
+  const [src] = useState(tab.src)
+  const { id } = tab
+  const handleNavigate = useCallback((url: string, title: string) => onNavigate(id, url, title), [onNavigate, id])
+  return <BrowserFrame src={src} title={tab.title} hidden={hidden} onNavigate={handleNavigate} />
+}
+
 interface DistractionModalProps {
-  label: string | null
-  messaging: boolean
+  pending: PendingOpen | null
   onCancel: () => void
+  /** Solo para avisos: en modo Estricto no hay opción de abrir. */
   onConfirm: () => void
 }
 
-function DistractionModal({ label, messaging, onCancel, onConfirm }: DistractionModalProps) {
+function DistractionModal({ pending, onCancel, onConfirm }: DistractionModalProps) {
   const timer = useTimer()
   const remainingMs = useRemainingMs()
-  const focusRunning = timer.phase === 'focus' && timer.status === 'running'
+  const { focusRunning } = timerFlags(timer)
+  const verdict = pending?.verdict
+  const label = verdict?.label ?? ''
+  const blocked = verdict?.action === 'block'
+  const messaging = verdict?.kind === 'messaging'
+  const left = formatClock(remainingMs)
+
+  const title = blocked
+    ? 'Bloqueado hasta el descanso'
+    : messaging
+      ? `¿Abrir ${label} ahora?`
+      : verdict?.own
+        ? `${label} está en tu lista de distracciones`
+        : `Eso parece una distracción (${label})`
+
+  const text = blocked
+    ? `Estás en modo Estricto: ${label} no se abre mientras te concentras. Te quedan ${left}; en el descanso podrás entrar.`
+    : messaging
+      ? `Estás en un bloque de concentración: te quedan ${left}. Los mensajes pueden esperar al descanso.`
+      : focusRunning
+        ? `Estás en un bloque de concentración: te quedan ${left}. Aguanta un poco: en el descanso podrás entrar sin avisos.`
+        : 'Has venido aquí a estudiar. ¿Seguro que quieres abrirlo?'
 
   return (
     <Modal
-      open={label !== null}
-      title={messaging ? `¿Abrir ${label ?? ''} ahora?` : `Eso parece una distracción (${label ?? ''})`}
-      icon={<TriangleAlert size={28} />}
+      open={pending !== null}
+      title={title}
+      icon={blocked ? <Lock size={28} /> : <TriangleAlert size={28} />}
       onClose={onCancel}
     >
-      <p className="modal-text">
-        {messaging
-          ? `Estás en un bloque de concentración: te quedan ${formatClock(remainingMs)}. Los mensajes pueden esperar al descanso.`
-          : focusRunning
-            ? `Estás en un bloque de concentración: te quedan ${formatClock(remainingMs)}. Aguanta un poco: en el descanso podrás entrar sin avisos.`
-            : 'Has venido aquí a estudiar. ¿Seguro que quieres abrirlo?'}
-      </p>
+      <p className="modal-text">{text}</p>
       <div className="modal-actions">
         <button type="button" className="btn btn-primary" data-autofocus onClick={onCancel}>
           Volver a lo mío
         </button>
-        <button type="button" className="btn btn-ghost" onClick={onConfirm}>
-          Abrir igualmente
-        </button>
+        {!blocked && (
+          <button type="button" className="btn btn-ghost" onClick={onConfirm}>
+            Abrir igualmente
+          </button>
+        )}
       </div>
     </Modal>
   )

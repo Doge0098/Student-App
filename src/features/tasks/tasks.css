@@ -1,0 +1,133 @@
+/* ------------------------------------------------------------------ */
+/* Tareas: fechas de entrega y exámenes                                */
+/* ------------------------------------------------------------------ */
+.task-add {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-add .task-date-toggle {
+  width: 36px;
+  height: 36px;
+}
+
+.task-add .task-date-toggle.is-on {
+  background: var(--accent-soft);
+}
+
+.task-extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.task-extra-edit {
+  gap: 6px 8px;
+  padding-top: 2px;
+}
+
+.task-date-input {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 9px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  min-width: 0;
+}
+
+.task-date-input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.task-exam-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.task-exam-toggle input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.task-extra-link {
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.task-extra-link:hover {
+  color: var(--danger);
+}
+
+.task-extra-save {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.task-extra-save:hover {
+  background: var(--accent-hover);
+}
+
+.task-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.task-due {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.task-due:hover {
+  border-color: color-mix(in srgb, var(--text-muted) 50%, transparent);
+}
+
+.task-due[data-tone='soon'] {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+}
+
+.task-due[data-tone='danger'] {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+
+.task-actions {
+  display: flex;
+  align-items: center;
+}

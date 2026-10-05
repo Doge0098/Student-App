@@ -3,6 +3,7 @@ import {
   Blocks,
   BookA,
   BookOpen,
+  BookOpenText,
   Bot,
   Box,
   BrainCircuit,
@@ -30,6 +31,7 @@ import {
   NotebookPen,
   PenTool,
   Presentation,
+  Puzzle,
   Search,
   Send,
   Server,
@@ -44,6 +46,7 @@ import {
   Workflow,
   type LucideIcon,
 } from 'lucide-react'
+import type { LevelId } from '../profile/profile'
 
 export type StoreCategory =
   | 'google'
@@ -114,6 +117,7 @@ export const STORE_APPS: StoreApp[] = [
   { id: 'colab', name: 'Google Colab', description: 'Programa en Python sin instalar nada.', category: 'programacion', icon: Terminal, webUrl: 'https://colab.research.google.com/', price: 'gratis' },
   { id: 'replit', name: 'Replit', description: 'Programa en muchos lenguajes online.', category: 'programacion', icon: Cloud, webUrl: 'https://replit.com/', price: 'limites' },
   { id: 'scratch', name: 'Scratch', description: 'Aprende a programar con bloques.', category: 'programacion', icon: Blocks, webUrl: 'https://scratch.mit.edu/projects/editor/', downloadUrl: 'https://scratch.mit.edu/download', price: 'gratis' },
+  { id: 'codeorg', name: 'Code.org', description: 'Cursos y juegos para aprender a programar paso a paso.', category: 'programacion', icon: Puzzle, webUrl: 'https://studio.code.org/courses', price: 'gratis' },
   { id: 'github', name: 'GitHub', description: 'Guarda tu código y colabora en proyectos.', category: 'programacion', icon: Layers, webUrl: 'https://github.com/', downloadUrl: 'https://desktop.github.com/', price: 'gratis' },
 
   // Máquinas virtuales
@@ -145,6 +149,7 @@ export const STORE_APPS: StoreApp[] = [
 
   // Idiomas y consulta
   { id: 'wikipedia', name: 'Wikipedia', description: 'La enciclopedia libre.', category: 'idiomas', icon: BookOpen, webUrl: 'https://es.wikipedia.org/', price: 'gratis' },
+  { id: 'vikidia', name: 'Vikidia', description: 'Enciclopedia para niños y niñas de 8 a 13 años.', category: 'idiomas', icon: BookOpenText, webUrl: 'https://es.vikidia.org/', price: 'gratis' },
   { id: 'rae', name: 'Diccionario RAE', description: 'Significado y uso de las palabras en español.', category: 'idiomas', icon: BookA, webUrl: 'https://dle.rae.es/', price: 'gratis' },
   { id: 'wordreference', name: 'WordReference', description: 'Diccionarios de idiomas y foros de dudas.', category: 'idiomas', icon: Languages, webUrl: 'https://www.wordreference.com/es/', price: 'gratis' },
   { id: 'deepl', name: 'DeepL', description: 'Traductor muy preciso.', category: 'idiomas', icon: Languages, webUrl: 'https://www.deepl.com/translator', price: 'limites' },
@@ -176,4 +181,42 @@ export const GOOGLE_CREATE = [
 
 export function findApp(id: string): StoreApp | undefined {
   return STORE_APPS.find((app) => app.id === id)
+}
+
+/**
+ * Apps recomendadas para cada curso, de más a menos útil. En Primaria no se recomiendan las
+ * avanzadas (máquinas virtuales, LaTeX, GitHub…) ni los chats de IA, que piden una edad mínima.
+ * Todas siguen en la tienda: esto solo decide qué sale en «Para ti».
+ */
+const RECOMMENDED: Record<LevelId, string[]> = {
+  primaria: [
+    'scratch', 'khan', 'vikidia', 'wikipedia', 'rae', 'translate', 'codeorg', 'phet', 'duolingo', 'tinkercad',
+    'classroom', 'drive',
+  ],
+  eso: [
+    'classroom', 'docs', 'khan', 'geogebra', 'desmos', 'phet', 'ptable', 'wikipedia', 'rae', 'wordreference',
+    'quizlet', 'duolingo', 'scratch', 'canva', 'tinkercad', 'slides',
+  ],
+  bachillerato: [
+    'classroom', 'docs', 'desmos', 'geogebra', 'wolfram', 'ptable', 'khan', 'anki', 'quizlet', 'notebooklm',
+    'wordreference', 'deepl', 'rae', 'wikipedia', 'canva', 'gemini',
+  ],
+  fp: [
+    'vscode', 'github', 'virtualbox', 'webvm', 'replit', 'colab', 'wsl', 'drawio', 'libreoffice', 'sheets', 'canva',
+    'teams', 'notion', 'tinkercad', 'chatgpt',
+  ],
+  universidad: [
+    'zotero', 'overleaf', 'anki', 'vscode', 'notebooklm', 'scholar', 'colab', 'obsidian', 'notion', 'wolfram',
+    'deepl', 'drive', 'perplexity', 'github', 'drawio',
+  ],
+  otro: [
+    'anki', 'quizlet', 'notebooklm', 'notion', 'obsidian', 'duolingo', 'deepl', 'wordreference', 'rae', 'wikipedia',
+    'calendar', 'docs', 'khan',
+  ],
+}
+
+/** Apps que se recomiendan para el curso elegido (vacío si aún no ha elegido curso). */
+export function recommendedApps(level: LevelId | null): StoreApp[] {
+  if (!level || !(level in RECOMMENDED)) return []
+  return RECOMMENDED[level].map(findApp).filter((app): app is StoreApp => Boolean(app))
 }

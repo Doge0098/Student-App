@@ -2,7 +2,8 @@ import { Download, ExternalLink, Star } from 'lucide-react'
 import { useState } from 'react'
 import { normalize } from '../../lib/text'
 import { LoginButton } from '../accounts/LoginButton'
-import { PRICE_LABELS, STORE_APPS, STORE_CATEGORIES, type StoreApp, type StoreCategory } from './catalog'
+import { LEVELS, useProfile } from '../profile/profile'
+import { PRICE_LABELS, STORE_APPS, STORE_CATEGORIES, recommendedApps, type StoreApp, type StoreCategory } from './catalog'
 
 interface AppStoreProps {
   myApps: string[]
@@ -11,16 +12,41 @@ interface AppStoreProps {
   onDownloadApp: (app: StoreApp) => void
 }
 
+type Filter = StoreCategory | 'all' | 'para-ti'
+
 /** Tienda de apps de estudio: apps web para abrir aquí y programas para descargar de su web oficial. */
 export function AppStore({ myApps, onToggleMyApp, onOpenApp, onDownloadApp }: AppStoreProps) {
+  const { level } = useProfile()
+  const forYou = recommendedApps(level)
   const [query, setQuery] = useState('')
-  const [category, setCategory] = useState<StoreCategory | 'all'>('all')
+  const [chosen, setChosen] = useState<Filter | null>(null)
+  // «Para ti» es lo primero que se ve cuando ya ha elegido curso.
+  const category: Filter = chosen === 'para-ti' && forYou.length === 0 ? 'all' : (chosen ?? (forYou.length > 0 ? 'para-ti' : 'all'))
 
   const q = normalize(query.trim())
-  const apps = STORE_APPS.filter(
+  const pool = category === 'para-ti' ? forYou : STORE_APPS
+  const apps = pool.filter(
     (app) =>
-      (category === 'all' || app.category === category) &&
+      (category === 'all' || category === 'para-ti' || app.category === category) &&
       (!q || normalize(`${app.name} ${app.description} ${STORE_CATEGORIES[app.category]}`).includes(q)),
+  )
+
+  const search = (text: string) => {
+    setQuery(text)
+    // Buscar dentro de «Para ti» dejaría fuera casi todo: se busca en toda la tienda.
+    if (text.trim() && category === 'para-ti') setChosen('all')
+  }
+
+  const chip = (id: Filter, label: string) => (
+    <button
+      key={id}
+      type="button"
+      className={`chip ${category === id ? 'is-active' : ''}`}
+      aria-pressed={category === id}
+      onClick={() => setChosen(id)}
+    >
+      {label}
+    </button>
   )
 
   return (
@@ -29,36 +55,22 @@ export function AppStore({ myApps, onToggleMyApp, onOpenApp, onDownloadApp }: Ap
         type="search"
         className="store-search"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => search(e.target.value)}
         placeholder="Buscar apps: Python, IA, Linux, apuntes…"
         aria-label="Buscar apps"
       />
 
       <div className="chip-row" role="group" aria-label="Categorías">
-        <button
-          type="button"
-          className={`chip ${category === 'all' ? 'is-active' : ''}`}
-          aria-pressed={category === 'all'}
-          onClick={() => setCategory('all')}
-        >
-          Todas
-        </button>
-        {(Object.keys(STORE_CATEGORIES) as StoreCategory[]).map((id) => (
-          <button
-            key={id}
-            type="button"
-            className={`chip ${category === id ? 'is-active' : ''}`}
-            aria-pressed={category === id}
-            onClick={() => setCategory(id)}
-          >
-            {STORE_CATEGORIES[id]}
-          </button>
-        ))}
+        {forYou.length > 0 && chip('para-ti', 'Para ti')}
+        {chip('all', 'Todas')}
+        {(Object.keys(STORE_CATEGORIES) as StoreCategory[]).map((id) => chip(id, STORE_CATEGORIES[id]))}
       </div>
 
       <p className="hint">
-        Las apps web se abren desde aquí. Las descargables te llevan a su página oficial para instalarlas. Pulsa ★
-        para tenerlas en Inicio.
+        {category === 'para-ti' && level
+          ? `Elegidas para ${LEVELS[level].label}. Puedes cambiar tu curso en Ajustes. `
+          : 'Las apps web se abren desde aquí. Las descargables te llevan a su página oficial para instalarlas. '}
+        Pulsa ★ para tenerlas en Inicio.
       </p>
       {category === 'google' && (
         <div>

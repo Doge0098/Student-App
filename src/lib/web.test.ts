@@ -3,12 +3,15 @@ import {
   categorize,
   deriveTitle,
   detectSubjectForUrl,
+  distractionHosts,
   getDistraction,
   getEmbed,
   getGoogleFile,
   getMessagingApp,
   getSearchQuery,
   isMusicUrl,
+  messagingHosts,
+  normalizeDomain,
   pageKey,
   parseMusicInput,
   parseSpotify,
@@ -50,6 +53,85 @@ describe('getDistraction', () => {
     expect(getDistraction(u('https://www.youtube.com/watch?v=dQw4w9WgXcQ'))).toBeNull()
     expect(getDistraction(u('https://es.wikipedia.org/wiki/Roma'))).toBeNull()
     expect(getDistraction(u('https://box.com'))).toBeNull()
+  })
+
+  it('también usa la lista propia del estudiante (con sus subdominios)', () => {
+    const mine = ['marca.com', 'as.com']
+    expect(getDistraction(u('https://www.marca.com/futbol'), mine)).toBe('marca.com')
+    expect(getDistraction(u('https://as.com/'), mine)).toBe('as.com')
+    expect(getDistraction(u('https://www.marca.com/'))).toBeNull()
+    // "as.com" no debe atrapar webs que solo terminan igual
+    expect(getDistraction(u('https://canvas.com/'), mine)).toBeNull()
+    // Las de serie tienen prioridad y su nombre bonito
+    expect(getDistraction(u('https://www.instagram.com/'), ['instagram.com'])).toBe('Instagram')
+  })
+
+  it('ignora entradas guardadas que no son dominios', () => {
+    const broken = ['', '   ', 'no es una web', 42 as unknown as string, 'HTTPS://WWW.Marca.com/x']
+    expect(getDistraction(u('https://marca.com/'), broken)).toBe('marca.com')
+    expect(getDistraction(u('https://ejemplo.com/'), broken)).toBeNull()
+  })
+})
+
+describe('normalizeDomain', () => {
+  it('se queda solo con el dominio', () => {
+    expect(normalizeDomain('https://www.marca.com/futbol')).toBe('marca.com')
+    expect(normalizeDomain('marca.com')).toBe('marca.com')
+    expect(normalizeDomain('  Marca.COM  ')).toBe('marca.com')
+    expect(normalizeDomain('http://m.marca.com/?a=1#b')).toBe('marca.com')
+    expect(normalizeDomain('www.marca.com:8080/x')).toBe('marca.com')
+    expect(normalizeDomain('*.marca.com')).toBe('marca.com')
+    expect(normalizeDomain('es.wikipedia.org/wiki/Roma')).toBe('es.wikipedia.org')
+    expect(normalizeDomain('juegos.example.co.uk')).toBe('juegos.example.co.uk')
+    expect(normalizeDomain('www.com')).toBe('www.com')
+    expect(normalizeDomain('marca.com.')).toBe('marca.com')
+  })
+
+  it('pasa los dominios con tildes a su forma de internet', () => {
+    expect(normalizeDomain('españa.com')).toBe('xn--espaa-rta.com')
+  })
+
+  it('rechaza lo que no es una web', () => {
+    for (const bad of [
+      '',
+      '   ',
+      'marca',
+      'hola que tal',
+      'mar ca.com',
+      'localhost',
+      'localhost:3000',
+      '192.168.1.1',
+      'ftp://marca.com',
+      'javascript:alert(1)',
+      'mailto:yo@marca.com',
+      'https://user:pass@marca.com',
+      '-marca.com',
+      'marca-.com',
+      'marca..com',
+      'marca.c',
+      'marca.123',
+      '.com',
+      'https://',
+    ]) {
+      expect(normalizeDomain(bad), bad).toBeNull()
+    }
+  })
+})
+
+describe('listas para bloquear', () => {
+  it('incluye las distracciones de dominio entero y la lista propia, sin repetir', () => {
+    const hosts = distractionHosts(['marca.com', 'instagram.com', 'basura'])
+    expect(hosts).toContain('instagram.com')
+    expect(hosts).toContain('tiktok.com')
+    expect(hosts).toContain('marca.com')
+    expect(hosts).not.toContain('basura')
+    // Shorts se detecta por la ruta: bloquear todo youtube.com quitaría los vídeos de clase
+    expect(hosts).not.toContain('youtube.com')
+    expect(new Set(hosts).size).toBe(hosts.length)
+  })
+
+  it('lista los dominios de mensajería', () => {
+    expect(messagingHosts()).toEqual(expect.arrayContaining(['whatsapp.com', 'discord.com', 't.me']))
   })
 })
 

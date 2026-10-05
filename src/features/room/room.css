@@ -1,0 +1,46 @@
+/* ------------------------------------------------------------------ */
+/* Estudiar con amigos                                                 */
+/* ------------------------------------------------------------------ */
+.room-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.room-badge-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.room-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.room-copy:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.room-start {
+  margin-top: -6px;
+}
+
+.room-plan {
+  font-size: 14px;
+}

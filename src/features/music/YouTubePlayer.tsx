@@ -54,6 +54,8 @@ export function YouTubePlayer({ videoId, listId }: YouTubePlayerProps) {
               registerControls({
                 play: () => p.playVideo(),
                 toggle: () => (playing ? p.pauseVideo() : p.playVideo()),
+                pause: () => p.pauseVideo(),
+                resume: () => p.playVideo(),
                 next: listId ? () => p.nextVideo() : undefined,
                 prev: listId ? () => p.previousVideo() : undefined,
                 setVolume: (v) => p.setVolume(v),

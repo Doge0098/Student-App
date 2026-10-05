@@ -1,0 +1,74 @@
+{
+  "name": "lockin-desktop",
+  "productName": "LockIn",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LockIn para ordenador: todas las webs dentro de la app.",
+  "author": "LockIn",
+  "license": "UNLICENSED",
+  "main": "build/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "start": "npm run build && electron .",
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "dist": "npm run build && electron-builder --win --mac --linux",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "pack": "npm run build && electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "typescript": "~6.0.2"
+  },
+  "build": {
+    "appId": "app.lockin.desktop",
+    "productName": "LockIn",
+    "artifactName": "LockIn-${version}-${os}-${arch}.${ext}",
+    "icon": "../public/icon-512.png",
+    "directories": {
+      "output": "release",
+      "buildResources": "build-resources"
+    },
+    "files": [
+      "build/**/*.js",
+      "!build/**/*.test.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../dist",
+        "to": "web",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "language": "3082"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.education"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Education",
+      "maintainer": "LockIn"
+    }
+  }
+}

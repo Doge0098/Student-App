@@ -2,12 +2,16 @@ import { Headphones, Pause, Play, Save, SkipBack, SkipForward, Volume2, X } from
 import { useState, type FormEvent } from 'react'
 import { Panel } from '../../components/Panel'
 import { useToast } from '../../components/Toast'
+import { useStore } from '../../hooks/store'
 import { musicSourceUrl, parseMusicInput } from '../../lib/web'
 import { useAccounts } from '../accounts/AccountsContext'
 import { LoginButton } from '../accounts/LoginButton'
+import { AmbientControls } from './AmbientControls'
 import { useMusic } from './MusicContext'
+import { autoPauseStore } from './musicStores'
 import { SpotifyPlayer } from './SpotifyPlayer'
 import { YouTubePlayer } from './YouTubePlayer'
+import './music.css'
 
 function providerOf(url: string) {
   return parseMusicInput(url)?.provider === 'spotify' ? 'Spotify' : 'YouTube'
@@ -19,6 +23,7 @@ export function MusicPanel() {
   const toast = useToast()
   const [link, setLink] = useState('')
   const [saving, setSaving] = useState(false)
+  const [autoPause, setAutoPause] = useStore(autoPauseStore)
   const { source } = music
   const currentUrl = source ? musicSourceUrl(source) : null
   const valid = parseMusicInput(link) !== null
@@ -145,6 +150,22 @@ export function MusicPanel() {
           <Save size={18} />
         </button>
       </form>
+
+      <AmbientControls />
+
+      <label
+        className="music-auto-pause"
+        title="Al empezar un descanso se pausa lo que suena, y vuelve a sonar al seguir estudiando."
+      >
+        <span>Pausar en los descansos</span>
+        <input
+          type="checkbox"
+          role="switch"
+          className="music-switch"
+          checked={autoPause !== false}
+          onChange={(e) => setAutoPause(e.target.checked)}
+        />
+      </label>
     </Panel>
   )
 }

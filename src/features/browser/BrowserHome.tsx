@@ -1,4 +1,4 @@
-import { Check, Pencil, Pin, PinOff, Plus, X } from 'lucide-react'
+import { Check, Pencil, Pin, PinOff, Plus, SquareStack, X } from 'lucide-react'
 import { useMemo, useState, type CSSProperties } from 'react'
 import { SubjectPicker } from '../../components/SubjectPicker'
 import { SUBJECTS, type SubjectId } from '../../lib/subjects'
@@ -13,6 +13,8 @@ interface BrowserHomeProps {
   myApps: string[]
   onOpen: (url: string, options?: { record?: boolean }) => void
   onOpenApp: (app: StoreApp) => void
+  /** «Abrir todo» de una asignatura (las páginas ya filtradas, en orden). */
+  onOpenAll: (items: HistoryItem[], subject: SubjectId) => void
   onShowStore: () => void
   onUpdate: (id: string, patch: Partial<HistoryItem>) => void
   onRemove: (id: string) => void
@@ -29,7 +31,7 @@ function hostOf(url: string) {
 }
 
 /** Pestaña de inicio: seguir con lo último, tus apps y lo que has abierto. */
-export function BrowserHome({ history, myApps, onOpen, onOpenApp, onShowStore, onUpdate, onRemove }: BrowserHomeProps) {
+export function BrowserHome({ history, myApps, onOpen, onOpenApp, onOpenAll, onShowStore, onUpdate, onRemove }: BrowserHomeProps) {
   const [showAll, setShowAll] = useState(false)
   const [subjectFilter, setSubjectFilter] = useState<SubjectId | 'all'>('all')
   const [editing, setEditing] = useState<{ id: string; title: string } | null>(null)
@@ -97,9 +99,21 @@ export function BrowserHome({ history, myApps, onOpen, onOpenApp, onShowStore, o
       </section>
 
       <section className="home-section" aria-labelledby="history-title">
-        <h3 className="section-title" id="history-title">
-          Lo que has abierto
-        </h3>
+        <div className="section-head">
+          <h3 className="section-title" id="history-title">
+            Lo que has abierto
+          </h3>
+          {subjectFilter !== 'all' && filtered.length > 1 && (
+            <button
+              type="button"
+              className="btn btn-small"
+              title="Abre aquí dentro las que se puedan"
+              onClick={() => onOpenAll(filtered, subjectFilter)}
+            >
+              <SquareStack size={14} aria-hidden="true" /> Abrir todo ({filtered.length})
+            </button>
+          )}
+        </div>
 
         {history.length === 0 ? (
           <p className="empty">Busca algo arriba o abre una app. Aquí lo verás ordenado por asignatura para volver luego.</p>

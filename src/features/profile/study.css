@@ -1,0 +1,91 @@
+/* ------------------------------------------------------------------ */
+/* Ajustes › Estudio: curso, modo y «Mis distracciones»                */
+/* ------------------------------------------------------------------ */
+.study-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+}
+
+.study-modes {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.study-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.study-choice:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+
+.study-choice.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.study-choice input {
+  flex-shrink: 0;
+  margin: 3px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.study-choice-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.study-choice-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.study-choice-hint {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.study-domains {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.study-domain {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 2px 2px 2px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.study-domain span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-domain .icon-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}

@@ -1,0 +1,700 @@
+/* ------------------------------------------------------------------ */
+/* Asistente de IA                                                     */
+/* ------------------------------------------------------------------ */
+.ai-view {
+  container: ai / inline-size;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.ai {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 720px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.ai-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-title {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ai-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-modes {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-modes button {
+  white-space: nowrap;
+}
+
+.ai-settings-btn {
+  flex-shrink: 0;
+}
+
+.ai-settings-btn.is-open {
+  border-color: var(--accent);
+}
+
+.ai-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.ai-settings-done {
+  align-self: flex-end;
+}
+
+.ai-label {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.ai-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ai-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.ai-spin {
+  animation: ai-spin 0.9s linear infinite;
+}
+
+@keyframes ai-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Entradas propias (las globales solo cubren texto y números) */
+.ai-textarea,
+.ai-key-input {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 11px;
+}
+
+.ai-textarea {
+  display: block;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.ai-textarea:focus,
+.ai-key-input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.ai-textarea::placeholder,
+.ai-key-input::placeholder {
+  color: var(--text-muted);
+}
+
+.ai-textarea:disabled {
+  opacity: 0.7;
+}
+
+/* ---------------------------- Conexión ---------------------------- */
+.ai-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ai-providers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+.ai-providers legend {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.ai-provider {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ai-provider input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ai-provider:hover {
+  border-color: var(--accent);
+}
+
+.ai-provider:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.ai-provider.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ai-provider-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 14.5px;
+}
+
+.ai-provider-saved {
+  display: inline-flex;
+  color: var(--break);
+}
+
+.ai-provider-meta,
+.ai-provider-price {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.ai-provider-price.is-free {
+  color: var(--break);
+  font-weight: 600;
+}
+
+.ai-saved {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-saved-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-saved-key {
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--surface-3);
+}
+
+.ai-danger {
+  color: var(--danger);
+}
+
+.ai-key-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-key-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  text-decoration: none;
+}
+
+.ai-privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  line-height: 1.45;
+}
+
+.ai-privacy svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ------------------------------ Chat ------------------------------ */
+.ai-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-chat-empty {
+  flex: 1;
+  display: grid;
+  place-items: center;
+}
+
+.ai-messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ai-msg {
+  max-width: 88%;
+  padding: 9px 13px;
+  border-radius: var(--radius);
+  font-size: 14.5px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.ai-msg-user {
+  align-self: flex-end;
+  white-space: pre-wrap;
+  background: var(--accent-soft);
+  border-bottom-right-radius: 4px;
+}
+
+.ai-msg-ai {
+  align-self: flex-start;
+  background: var(--surface-2);
+  border-bottom-left-radius: 4px;
+}
+
+.ai-retry {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 0;
+}
+
+.ai-composer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: auto -16px -16px;
+  padding: 8px 16px 16px;
+  background: var(--surface);
+}
+
+.ai-new-chat {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ai-composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ai-composer-input {
+  resize: none;
+  field-sizing: content;
+  min-height: 40px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.ai-composer-row .btn-icon {
+  height: 40px;
+  width: 40px;
+}
+
+/* Texto con formato de la IA */
+.ai-rich {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-rich ul,
+.ai-rich ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ai-rich-h {
+  font-weight: 700;
+}
+
+.ai-rich code {
+  font-size: 0.92em;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-3);
+}
+
+.ai-rich pre {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  font-size: 13px;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* ------------------------ Resumir, Test, Tarjetas ------------------------ */
+.ai-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-source {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-source-note {
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.ai-source-box {
+  position: relative;
+}
+
+.ai-source-box .ai-textarea {
+  padding-right: 40px;
+  min-height: 150px;
+}
+
+.ai-source-clear {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+
+.ai-count {
+  align-self: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+
+.ai-count.is-over {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.ai-result {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+
+/* Test */
+.ai-quiz-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-quiz-question {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.ai-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: left;
+  font-size: 14.5px;
+  line-height: 1.4;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ai-options:not(.is-answered) .ai-option:hover {
+  border-color: var(--accent);
+}
+
+/* Ya contestada: no se puede cambiar, pero se lee bien */
+.ai-option:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+.ai-option.is-dim {
+  opacity: 0.55;
+}
+
+.ai-option-letter {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface-3);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.ai-option.is-correct {
+  border-color: var(--break);
+  background: var(--break-soft);
+}
+
+.ai-option.is-correct .ai-option-letter {
+  background: var(--break);
+  color: var(--accent-contrast);
+}
+
+.ai-option.is-wrong {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.ai-option.is-wrong .ai-option-letter {
+  background: var(--danger);
+  color: var(--accent-contrast);
+}
+
+.ai-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ai-good {
+  color: var(--break);
+  font-weight: 700;
+}
+
+.ai-bad {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.ai-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 0;
+}
+
+.ai-score-number {
+  font-size: 34px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.ai-review ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-review li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 14px;
+}
+
+.ai-review-answer {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--break);
+  font-weight: 600;
+}
+
+/* Tarjetas */
+.ai-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.ai-card-fields {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+}
+
+.ai-add-card {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 0;
+}
+
+.ai-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-deck-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-deck-row input {
+  flex: 1;
+}
+
+/* Estrecho (móvil o columna central pequeña) */
+@container ai (max-width: 560px) {
+  .ai {
+    padding: 12px;
+  }
+  .ai-head {
+    gap: 6px;
+  }
+  .ai-modes button {
+    padding: 5px 4px;
+  }
+  .ai-settings-btn {
+    padding: 7px 9px;
+  }
+  .ai-settings-name {
+    display: none;
+  }
+  .ai-providers {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .ai-provider {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    column-gap: 8px;
+  }
+  .ai-provider-price {
+    margin-left: auto;
+  }
+  .ai-card-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ai-msg {
+    max-width: 94%;
+  }
+  .ai-composer {
+    margin: auto -12px -12px;
+    padding: 8px 12px 12px;
+  }
+}
+
+/* Muy estrecho: los modos pasan a su propia fila */
+@container ai (max-width: 340px) {
+  .ai-head {
+    flex-wrap: wrap;
+  }
+  .ai-modes {
+    flex-basis: 100%;
+    order: 2;
+  }
+  .ai-settings-btn {
+    margin-left: auto;
+  }
+}

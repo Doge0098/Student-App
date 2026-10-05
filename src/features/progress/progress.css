@@ -1,0 +1,170 @@
+/* ------------------------------------------------------------------ */
+/* Tu progreso                                                         */
+/* ------------------------------------------------------------------ */
+.study-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.study-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+}
+
+.study-stat {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.study-stat dt {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.study-stat dd {
+  margin: 2px 0 0;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.study-note {
+  margin-top: -8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.study-empty {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.study-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.study-heading {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-muted);
+}
+
+/* Barras de los últimos 7 días: una sola serie, un solo color (el del temporizador). */
+.study-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.study-day {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.study-plot {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+  height: 128px;
+  border-bottom: 1px solid var(--border);
+}
+
+.study-value {
+  font-size: 11px;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.study-fill {
+  width: min(24px, 60%);
+  height: calc((100% - 17px) * var(--ratio, 0));
+  border-radius: 4px 4px 0 0;
+  background: var(--accent);
+}
+
+.study-label {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.study-day.is-today .study-label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Minutos por asignatura */
+.study-subjects {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.study-subject {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 10px;
+  font-size: 13.5px;
+}
+
+.study-subject-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-subject-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.study-subject-track {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.study-subject-fill {
+  display: block;
+  width: calc(100% * var(--ratio, 0));
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+/* Solo para lectores de pantalla */
+.study-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

@@ -13,17 +13,23 @@ export interface Note {
 
 export const notesStore = createStore<Note[]>('notes', [])
 
+/** Cambia una nota (y su fecha de edición). Se puede usar fuera de React, p. ej. al autoguardar. */
+export function updateNote(id: string, patch: Partial<Omit<Note, 'id'>>): void {
+  notesStore.set((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n)))
+}
+
 export function useNotes() {
-  const [notes, setNotes] = useStore(notesStore)
+  const [stored, setNotes] = useStore(notesStore)
+  // Datos editados a mano o de otra versión: nunca rompen la vista.
+  const notes = Array.isArray(stored) ? stored : []
   return {
     notes,
     add: (subject: SubjectId, title = '', body = '') => {
       const note: Note = { id: uid(), subject, title, body, updatedAt: Date.now() }
-      setNotes((prev) => [note, ...prev])
+      setNotes((prev) => [note, ...(Array.isArray(prev) ? prev : [])])
       return note
     },
-    update: (id: string, patch: Partial<Omit<Note, 'id'>>) =>
-      setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, ...patch, updatedAt: Date.now() } : n))),
+    update: updateNote,
     remove: (id: string) => setNotes((prev) => prev.filter((n) => n.id !== id)),
   }
 }

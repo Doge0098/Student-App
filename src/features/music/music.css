@@ -1,0 +1,107 @@
+/* ------------------------------------------------------------------ */
+/* Música: sonido ambiente y «Pausar en los descansos».                */
+/* (El reproductor, la lista y el mini reproductor están en styles.css.) */
+/* ------------------------------------------------------------------ */
+
+/* Sonido ambiente: una fila con el sonido, poner/parar y volumen */
+.ambient {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.ambient-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ambient-select {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 60%;
+  font-size: 13.5px;
+  padding: 6px 9px;
+  text-overflow: ellipsis;
+}
+
+.ambient-select option {
+  color: var(--text);
+}
+
+.ambient-toggle.is-on {
+  background: var(--accent-soft);
+}
+
+.ambient-volume {
+  flex: 1;
+  min-width: 56px;
+  accent-color: var(--accent);
+}
+
+/* Interruptor «Pausar en los descansos» */
+.music-auto-pause {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.music-switch {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 34px;
+  height: 20px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-3);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.music-switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.music-switch:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.music-switch:checked::before {
+  transform: translateX(14px);
+  background: var(--accent-contrast);
+}
+
+.music-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Mini reproductor: icono del sonido ambiente (al pulsarlo se para) */
+.mini-player .mini-ambient {
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-switch,
+  .music-switch::before {
+    transition: none;
+  }
+}

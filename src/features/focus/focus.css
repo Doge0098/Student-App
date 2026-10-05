@@ -1,0 +1,32 @@
+/* ------------------------------------------------------------------ */
+/* Modo foco: solo quedan el reloj y el navegador.                     */
+/* App.tsx pone la clase .is-focus-mode en .layout mientras está activo. */
+/* ------------------------------------------------------------------ */
+.focus-mode-btn.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.layout.is-focus-mode .col-right,
+.layout.is-focus-mode .col-left > :not(.timer-panel) {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .layout.is-focus-mode {
+    grid-template-columns: 300px minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1279px) {
+  .layout.is-focus-mode {
+    grid-template-areas: 'left main';
+  }
+}
+
+@media (max-width: 899px) {
+  .layout.is-focus-mode {
+    grid-template-areas: 'left' 'main';
+  }
+}

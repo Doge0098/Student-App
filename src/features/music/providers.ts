@@ -38,6 +38,7 @@ export interface SpotifyController {
   play(): void
   togglePlay(): void
   pause?(): void
+  resume?(): void
   destroy(): void
   addListener(event: 'ready' | 'playback_update', callback: (e: { data?: { isPaused?: boolean } }) => void): void
 }

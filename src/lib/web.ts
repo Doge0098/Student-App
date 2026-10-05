@@ -65,14 +65,66 @@ const DISTRACTIONS: { label: string; hosts: string[]; path?: RegExp }[] = [
   },
 ]
 
-/** Devuelve el nombre de la distracción si la web lo es (redes sociales, reels, streaming, juegos). */
-export function getDistraction(url: URL): string | null {
+/**
+ * Webs que se pueden vigilar por dominio entero (para bloquear también los enlaces pulsados dentro
+ * de una página en escritorio). YouTube Shorts no está: bloquear youtube.com quitaría los vídeos de clase.
+ */
+export function distractionHosts(extraHosts: readonly string[] = []): string[] {
+  const builtIn = DISTRACTIONS.filter((d) => !d.path).flatMap((d) => d.hosts)
+  return [...new Set([...builtIn, ...cleanHosts(extraHosts)])]
+}
+
+/**
+ * Devuelve el nombre de la distracción si la web lo es (redes sociales, reels, streaming, juegos)
+ * o si está en la lista propia del estudiante (`extraHosts`, dominios como "marca.com").
+ */
+export function getDistraction(url: URL, extraHosts: readonly string[] = []): string | null {
   for (const d of DISTRACTIONS) {
     if (d.hosts.some((h) => hostMatches(url.hostname, h)) && (!d.path || d.path.test(url.pathname))) {
       return d.label
     }
   }
-  return null
+  return cleanHosts(extraHosts).find((h) => hostMatches(url.hostname, h)) ?? null
+}
+
+/* ------------------------------------------------------------------ */
+/* Dominios escritos por el estudiante                                 */
+/* ------------------------------------------------------------------ */
+
+const LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/
+const TLD = /^([a-z]{2,63}|xn--[a-z0-9-]{1,59})$/
+
+/**
+ * Convierte lo que escribe el estudiante en un dominio limpio:
+ * "https://www.marca.com/futbol" o "Marca.com" → "marca.com". Devuelve null si no es una web.
+ */
+export function normalizeDomain(input: string): string | null {
+  let text = input.trim().toLowerCase()
+  if (!text || /\s/.test(text)) return null
+  text = text.replace(/^\*\./, '')
+  if (!/^[a-z][a-z0-9+.-]*:\/\//.test(text)) text = `https://${text}`
+  let url: URL
+  try {
+    url = new URL(text)
+  } catch {
+    return null
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+  if (url.username || url.password) return null
+  const full = url.hostname.replace(/\.$/, '')
+  // "www.marca.com" y "m.marca.com" son la misma web que "marca.com" (pero "www.com" se queda).
+  const short = full.replace(/^(www\d*|m)\./, '')
+  const host = short.includes('.') ? short : full
+  if (host.length > 253) return null
+  const labels = host.split('.')
+  if (labels.length < 2 || !labels.every((l) => LABEL.test(l)) || !TLD.test(labels.at(-1) ?? '')) return null
+  return host
+}
+
+/** Los dominios guardados se vuelven a limpiar por si se editaron a mano. */
+function cleanHosts(hosts: readonly string[]): string[] {
+  if (!Array.isArray(hosts)) return []
+  return hosts.map((h) => (typeof h === 'string' ? normalizeDomain(h) : null)).filter((h): h is string => h !== null)
 }
 
 /* ------------------------------------------------------------------ */
@@ -91,6 +143,10 @@ const MESSAGING: { label: string; hosts: string[] }[] = [
  */
 export function getMessagingApp(url: URL): string | null {
   return MESSAGING.find((m) => m.hosts.some((h) => hostMatches(url.hostname, h)))?.label ?? null
+}
+
+export function messagingHosts(): string[] {
+  return MESSAGING.flatMap((m) => m.hosts)
 }
 
 /* ------------------------------------------------------------------ */
@@ -157,7 +213,7 @@ const CATEGORY_RULES: { category: CategoryId; hosts: string[] }[] = [
     category: 'programacion',
     hosts: [
       'github.com', 'stackoverflow.com', 'developer.mozilla.org', 'w3schools.com', 'replit.com',
-      'codepen.io', 'geeksforgeeks.org', 'freecodecamp.org', 'python.org', 'scratch.mit.edu', 'vscode.dev',
+      'codepen.io', 'geeksforgeeks.org', 'freecodecamp.org', 'python.org', 'scratch.mit.edu', 'code.org', 'vscode.dev',
       'webvm.io', 'bellard.org', 'copy.sh',
     ],
   },
@@ -176,7 +232,7 @@ const CATEGORY_RULES: { category: CategoryId; hosts: string[] }[] = [
   {
     category: 'lectura',
     hosts: [
-      'wikipedia.org', 'wiktionary.org', 'wikibooks.org', 'wikisource.org', 'wikiversity.org', 'rae.es',
+      'wikipedia.org', 'wiktionary.org', 'wikibooks.org', 'wikisource.org', 'wikiversity.org', 'vikidia.org', 'rae.es',
       'britannica.com', 'sciencedirect.com', 'jstor.org', 'dialnet.unirioja.es',
     ],
   },

@@ -3,10 +3,16 @@ import { usePersistentState } from '../../hooks/usePersistentState'
 import { fetchTitle } from '../../lib/oembed'
 import { uid } from '../../lib/text'
 import { musicSourceUrl, parseMusicInput, type MusicSource } from '../../lib/web'
+import { AmbientProvider } from './AmbientContext'
+import { useAutoPause } from './useAutoPause'
 
 export interface PlayerControls {
   play: () => void
   toggle: () => void
+  /** Pausa si está sonando (no hace nada si ya está en pausa). */
+  pause: () => void
+  /** Sigue desde donde se pausó. Si no lo hay, se usa play. */
+  resume?: () => void
   next?: () => void
   prev?: () => void
   setVolume?: (volume: number) => void
@@ -36,6 +42,10 @@ interface MusicContextValue {
   stations: Station[]
   play: (link: string) => boolean
   toggle: () => void
+  /** Pausa lo que suena (lo usa «Pausar en los descansos»). */
+  pause: () => void
+  /** Sigue desde donde se pausó. */
+  resume: () => void
   next: () => void
   prev: () => void
   setVolume: (volume: number) => void
@@ -55,7 +65,16 @@ const DEFAULT_STATIONS: Station[] = [
 
 const MusicContext = createContext<MusicContextValue | null>(null)
 
+/** Música (YouTube, Spotify) y sonidos ambiente, con la pausa automática de los descansos. Va dentro de TimerProvider. */
 export function MusicProvider({ children }: { children: ReactNode }) {
+  return (
+    <AmbientProvider>
+      <MusicStateProvider>{children}</MusicStateProvider>
+    </AmbientProvider>
+  )
+}
+
+function MusicStateProvider({ children }: { children: ReactNode }) {
   const [source, setSource] = usePersistentState<MusicSource | null>('music-source', null)
   const [stations, setStations] = usePersistentState<Station[]>('music-stations', DEFAULT_STATIONS)
   const [volume, setVolumeState] = usePersistentState('music-volume', 70)
@@ -131,6 +150,14 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     [setVolumeState],
   )
 
+  const pause = useCallback(() => controls.current?.pause(), [])
+  const resume = useCallback(() => {
+    const c = controls.current
+    if (c) (c.resume ?? c.play)()
+  }, [])
+
+  useAutoPause({ isPlaying, sourceKey: sourceUrl, pause, resume })
+
   const value = useMemo<MusicContextValue>(
     () => ({
       source,
@@ -143,6 +170,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       stations,
       play,
       toggle: () => controls.current?.toggle(),
+      pause,
+      resume,
       next: () => controls.current?.next?.(),
       prev: () => controls.current?.prev?.(),
       setVolume,
@@ -151,7 +180,24 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       report,
       registerControls,
     }),
-    [source, autoplay, isPlaying, title, error, canSkip, volume, stations, play, setVolume, addStation, removeStation, report, registerControls],
+    [
+      source,
+      autoplay,
+      isPlaying,
+      title,
+      error,
+      canSkip,
+      volume,
+      stations,
+      play,
+      pause,
+      resume,
+      setVolume,
+      addStation,
+      removeStation,
+      report,
+      registerControls,
+    ],
   )
 
   return <MusicContext.Provider value={value}>{children}</MusicContext.Provider>
