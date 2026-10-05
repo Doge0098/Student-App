@@ -402,6 +402,16 @@ p {
   background: transparent;
 }
 
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--accent-contrast);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 85%, var(--hover-mix));
+}
+
 .btn-link {
   align-self: center;
   border: none;

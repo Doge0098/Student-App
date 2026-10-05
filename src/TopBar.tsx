@@ -1,4 +1,4 @@
-import { BookOpen, Coffee, Download, Moon, Settings, Sun } from 'lucide-react'
+import { BookOpen, Coffee, Download, LockKeyhole, Moon, Settings, Sun } from 'lucide-react'
 import { useState } from 'react'
 import { MiniPlayer } from './features/music/MiniPlayer'
 import { accentStyle } from './features/settings/appearance'
@@ -44,7 +44,7 @@ export function TopBar() {
     <header className="topbar">
       <div className="brand">
         <span className="brand-logo" aria-hidden="true">
-          <BookOpen size={18} />
+          <LockKeyhole size={18} />
         </span>
         <span className="brand-name">LockIn</span>
       </div>
