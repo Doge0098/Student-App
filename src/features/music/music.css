@@ -105,3 +105,337 @@
     transition: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Reproductor con aspecto de app de móvil                             */
+/* ------------------------------------------------------------------ */
+.music-panel .panel-body {
+  padding: 0;
+  gap: 0;
+}
+
+.phone {
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  max-height: calc(100dvh - var(--topbar-h) - 2 * var(--gap) - 64px);
+}
+
+.phone-screen {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 12px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Reproductor: se ve en «Ahora»; en las otras pestañas se esconde sin pararlo. */
+.phone-stage {
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.phone-stage.is-collapsed {
+  height: 0;
+  margin: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.phone-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.phone-now {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.phone-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.phone-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.phone-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.phone-controls .icon-btn {
+  width: 44px;
+  height: 44px;
+}
+
+.phone-controls .icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.phone-play.icon-btn-primary {
+  width: 62px;
+  height: 62px;
+}
+
+.phone-heading {
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.phone-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 0 6px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* Portadas */
+.cover {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cover-big {
+  width: 132px;
+}
+
+/* Listas: una fila deslizable en «Ahora» y una cuadrícula en «Biblioteca» */
+.station-row,
+.station-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.station-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+}
+
+.station-row .station-card {
+  flex: 0 0 104px;
+}
+
+.station-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 12px;
+}
+
+.station-card {
+  position: relative;
+  min-width: 0;
+}
+
+.station-card-main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.station-card.is-active .cover {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.station-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.station-card-provider {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.station-card.is-active .station-card-provider {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.station-card-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  opacity: 0;
+}
+
+.station-card:hover .station-card-remove,
+.station-card-remove:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .station-card-remove {
+    opacity: 1;
+  }
+}
+
+/* Cuentas */
+.phone-accounts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.phone-account {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.phone-account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.phone-account-text strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.phone-guide {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.phone-guide summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.phone-guide ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Mini reproductor (sobre la barra de pestañas) y pestañas de abajo */
+.phone-mini {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 12px 6px;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.phone-mini-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+}
+
+.phone-mini .cover {
+  width: 36px;
+  border-radius: 8px;
+}
+
+.phone-mini-title {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-nav {
+  display: flex;
+  border-top: 1px solid var(--border);
+  padding: 4px 6px 6px;
+}
+
+.phone-nav button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.phone-nav button.is-active {
+  color: var(--accent);
+}

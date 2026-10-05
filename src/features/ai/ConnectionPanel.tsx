@@ -162,6 +162,18 @@ function KeyForm({ provider, onDone, onCancel }: { provider: ProviderId; onDone:
       <a className="text-link ai-key-link" href={info.keyUrl} target="_blank" rel="noopener noreferrer">
         Consigue tu clave en la web de {info.company} <ExternalLink size={13} aria-hidden="true" />
       </a>
+      <details className="ai-manual">
+        <summary>¿Cómo consigo la clave de {info.name}?</summary>
+        <ol>
+          {info.keySteps.map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+        <p className="hint">
+          Es como una contraseña: no se la des a nadie. LockIn la guarda solo en este navegador. Si dudas, ponle un límite
+          de gasto en la web de {info.company}.
+        </p>
+      </details>
       {suspicious && <p className="hint">Esta clave no parece de {info.name} (suelen empezar por «{info.keyPrefix}»).</p>}
       {error && (
         <p className="error-text" id={`${inputId}-error`} role="alert">

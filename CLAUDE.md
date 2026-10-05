@@ -170,15 +170,17 @@ desktop/          versión de escritorio con Electron (su propio package.json)
   humo del escritorio (`desktop/scripts/smoke.mjs`) debería usar un archivo de precarga real.
 - Test de humo del escritorio: 34/34 con `xvfb-run` (necesita `LOCKIN_WEB_DIR` y `LOCKIN_SMOKE_CA` en
   este entorno; ver `desktop/README.md`).
-- **Peticiones nuevas del usuario, aún sin hacer** (hablar antes de empezar):
-  1. *Iniciar sesión en la IA en vez de pegar una clave.* Ojo: Claude y ChatGPT no ofrecen «iniciar
-     sesión con tu cuenta» a apps de terceros (los planes de suscripción no sirven para la API). Gemini
-     sí permite OAuth de Google, pero hay que crear un proyecto gratuito en Google Cloud. Alternativa
-     realista: enlaces directos a cada chat (se abren en pestaña nueva) además de la clave.
-  2. *YouTube Music y panel de música «como en el móvil»* (interfaz familiar: reproductor grande,
-     biblioteca, mini-reproductor). Limitación: music.youtube.com no se puede incrustar; se reproduce
-     con el reproductor de YouTube y la interfaz la hacemos nosotros. Buscar canciones dentro de
-     LockIn necesitaría una clave de la API de YouTube.
+- **Hecho a petición del usuario (6 oct 2026):**
+  1. IA: se mantiene la clave de API (Claude/ChatGPT no ofrecen «iniciar sesión» a apps de terceros) y
+     cada IA lleva un **mini manual** para conseguirla (`keySteps` en `ai/providers.ts`, desplegable en
+     `ConnectionPanel`).
+  2. Música: el panel tiene **aspecto de app de móvil** (pestañas Ahora / Biblioteca / Ambiente abajo,
+     portada y controles grandes, mini reproductor, biblioteca de listas con portadas) y los enlaces de
+     YouTube se muestran como «YouTube Music». Se puede iniciar sesión en Google (YouTube Music) y
+     Spotify desde Biblioteca. Los reproductores no se desmontan al cambiar de pestaña.
+- **Límite conocido:** traer solas las listas y recomendaciones de la cuenta del estudiante necesitaría las
+  APIs de Spotify/YouTube con OAuth (registrar una app; Spotify limita a pocos usuarios en modo
+  desarrollo). Por eso las listas se guardan pegando su enlace (hay una guía en la propia pestaña).
 
 ## Estado y próximos pasos
 

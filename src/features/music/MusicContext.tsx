@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePersistentState } from '../../hooks/usePersistentState'
-import { fetchTitle } from '../../lib/oembed'
+import { fetchMeta, fetchTitle } from '../../lib/oembed'
 import { uid } from '../../lib/text'
 import { musicSourceUrl, parseMusicInput, type MusicSource } from '../../lib/web'
 import { AmbientProvider } from './AmbientContext'
@@ -22,6 +22,8 @@ export interface Station {
   id: string
   name: string
   url: string
+  /** Portada guardada (Spotify). Las de YouTube se sacan del enlace. */
+  thumb?: string
 }
 
 export interface PlayerReport {
@@ -51,6 +53,7 @@ interface MusicContextValue {
   setVolume: (volume: number) => void
   addStation: (link: string, name?: string) => Promise<boolean>
   removeStation: (id: string) => void
+  updateStation: (id: string, patch: Partial<Pick<Station, 'name' | 'thumb'>>) => void
   /* Para los reproductores */
   report: (update: PlayerReport) => void
   registerControls: (controls: PlayerControls | null) => void
@@ -118,8 +121,10 @@ function MusicStateProvider({ children }: { children: ReactNode }) {
       const parsed = parseMusicInput(link)
       if (!parsed) return false
       const url = musicSourceUrl(parsed)
-      const finalName = name?.trim() || (await fetchTitle(url)) || 'Mi lista'
-      setStations((prev) => [{ id: uid(), name: finalName, url }, ...prev.filter((s) => s.url !== url)])
+      const meta = await fetchMeta(url)
+      const finalName = name?.trim() || meta?.title || 'Mi lista'
+      const thumb = meta?.thumbnail ?? undefined
+      setStations((prev) => [{ id: uid(), name: finalName, url, thumb }, ...prev.filter((s) => s.url !== url)])
       return true
     },
     [setStations],
@@ -127,6 +132,12 @@ function MusicStateProvider({ children }: { children: ReactNode }) {
 
   const removeStation = useCallback(
     (id: string) => setStations((prev) => prev.filter((s) => s.id !== id)),
+    [setStations],
+  )
+
+  const updateStation = useCallback(
+    (id: string, patch: Partial<Pick<Station, 'name' | 'thumb'>>) =>
+      setStations((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s))),
     [setStations],
   )
 
@@ -177,6 +188,7 @@ function MusicStateProvider({ children }: { children: ReactNode }) {
       setVolume,
       addStation,
       removeStation,
+      updateStation,
       report,
       registerControls,
     }),
@@ -195,6 +207,7 @@ function MusicStateProvider({ children }: { children: ReactNode }) {
       setVolume,
       addStation,
       removeStation,
+      updateStation,
       report,
       registerControls,
     ],

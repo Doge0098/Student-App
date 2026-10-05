@@ -698,3 +698,22 @@
     margin-left: auto;
   }
 }
+
+.ai-manual {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ai-manual summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ai-manual ol {
+  margin: 8px 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
