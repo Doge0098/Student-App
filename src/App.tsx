@@ -1,7 +1,9 @@
 import { ToastProvider } from './components/Toast'
+import { AccountsProvider } from './features/accounts/AccountsContext'
 import { StudyBrowser } from './features/browser/StudyBrowser'
 import { MusicProvider } from './features/music/MusicContext'
 import { MusicPanel } from './features/music/MusicPanel'
+import { AppearanceProvider } from './features/settings/AppearanceContext'
 import { TaskList } from './features/tasks/TaskList'
 import { FocusTimer } from './features/timer/FocusTimer'
 import { TimerProvider } from './features/timer/TimerContext'
@@ -10,27 +12,31 @@ import { TopBar } from './TopBar'
 
 export default function App() {
   return (
-    <ToastProvider>
-      <TimerProvider>
-        <MusicProvider>
-          <div className="app">
-            <TopBar />
-            <main className="layout">
-              <div className="col col-left">
-                <FocusTimer />
-                <TaskList />
+    <AppearanceProvider>
+      <ToastProvider>
+        <AccountsProvider>
+          <TimerProvider>
+            <MusicProvider>
+              <div className="app">
+                <TopBar />
+                <main className="layout">
+                  <div className="col col-left">
+                    <FocusTimer />
+                    <TaskList />
+                  </div>
+                  <div className="col col-main">
+                    <StudyBrowser />
+                  </div>
+                  <div className="col col-right">
+                    <MusicPanel />
+                  </div>
+                </main>
               </div>
-              <div className="col col-main">
-                <StudyBrowser />
-              </div>
-              <div className="col col-right">
-                <MusicPanel />
-              </div>
-            </main>
-          </div>
-          <TimerPrompt />
-        </MusicProvider>
-      </TimerProvider>
-    </ToastProvider>
+              <TimerPrompt />
+            </MusicProvider>
+          </TimerProvider>
+        </AccountsProvider>
+      </ToastProvider>
+    </AppearanceProvider>
   )
 }

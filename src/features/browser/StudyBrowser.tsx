@@ -1,5 +1,5 @@
 import { ArrowRight, Compass, ExternalLink, House, Info, RotateCcw, TriangleAlert, X } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Modal } from '../../components/Modal'
 import { Panel } from '../../components/Panel'
 import { useToast } from '../../components/Toast'
@@ -21,6 +21,8 @@ import {
   siteName,
   type SearchEngineId,
 } from '../../lib/web'
+import { useAccounts } from '../accounts/AccountsContext'
+import { LoginButton } from '../accounts/LoginButton'
 import { useMusic } from '../music/MusicContext'
 import { useRemainingMs, useTimer } from '../timer/TimerContext'
 import { BrowserHome } from './BrowserHome'
@@ -43,6 +45,7 @@ function trimHistory(items: HistoryItem[]): HistoryItem[] {
 export function StudyBrowser() {
   const timer = useTimer()
   const music = useMusic()
+  const accounts = useAccounts()
   const toast = useToast()
   const [history, setHistory] = usePersistentState<HistoryItem[]>('browser-history', [])
   const [tabs, setTabs] = usePersistentState<BrowserTab[]>('browser-tabs', [])
@@ -54,6 +57,15 @@ export function StudyBrowser() {
   const [loaded, setLoaded] = useState<Set<string>>(() => new Set([activeId]))
 
   const activeTab = tabs.find((t) => t.id === activeId) ?? null
+
+  // Tras iniciar sesión en Google se recargan los documentos abiertos para que usen la cuenta.
+  const googleVersion = accounts.versions.google
+  const seenGoogleVersion = useRef(googleVersion)
+  useEffect(() => {
+    if (seenGoogleVersion.current === googleVersion) return
+    seenGoogleVersion.current = googleVersion
+    setTabs((prev) => prev.map((t) => (t.hint === 'google-login' ? { ...t, reloads: t.reloads + 1 } : t)))
+  }, [googleVersion, setTabs])
 
   const activate = (id: string) => {
     setActiveId(id)
@@ -165,7 +177,7 @@ export function StudyBrowser() {
     setHistory((prev) => prev.map((h) => (h.id === id ? { ...h, ...patch } : h)))
 
   return (
-    <Panel title="Navegador de estudio" icon={<Compass size={18} />} className="browser-panel">
+    <Panel title="Navegador de estudio" icon={<Compass size={18} />} panel="browser" className="browser-panel">
       <form className="address-bar" onSubmit={submit} role="search">
         <input
           type="text"
@@ -242,12 +254,15 @@ export function StudyBrowser() {
       </div>
 
       {activeTab?.hint && (
-        <p className="frame-hint">
+        <div className="frame-hint">
           <Info size={14} aria-hidden="true" />
-          {activeTab.hint === 'google-login'
-            ? 'Para editar necesitas tener la sesión de Google iniciada en este navegador. Si no carga, ábrelo con ↗.'
-            : 'Si un resultado no carga aquí dentro, ábrelo con ↗ o pega su enlace en la barra.'}
-        </p>
+          <span>
+            {activeTab.hint === 'google-login'
+              ? 'Para editar necesitas haber entrado en tu cuenta de Google. Si no carga, ábrelo con ↗.'
+              : 'Si un resultado no carga aquí dentro, ábrelo con ↗ o pega su enlace en la barra.'}
+          </span>
+          {activeTab.hint === 'google-login' && <LoginButton service="google" />}
+        </div>
       )}
 
       <div className="browser-viewport">

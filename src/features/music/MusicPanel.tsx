@@ -3,6 +3,8 @@ import { useState, type FormEvent } from 'react'
 import { Panel } from '../../components/Panel'
 import { useToast } from '../../components/Toast'
 import { musicSourceUrl, parseMusicInput } from '../../lib/web'
+import { useAccounts } from '../accounts/AccountsContext'
+import { LoginButton } from '../accounts/LoginButton'
 import { useMusic } from './MusicContext'
 import { SpotifyPlayer } from './SpotifyPlayer'
 import { YouTubePlayer } from './YouTubePlayer'
@@ -13,6 +15,7 @@ function providerOf(url: string) {
 
 export function MusicPanel() {
   const music = useMusic()
+  const accounts = useAccounts()
   const toast = useToast()
   const [link, setLink] = useState('')
   const [saving, setSaving] = useState(false)
@@ -37,7 +40,7 @@ export function MusicPanel() {
   }
 
   return (
-    <Panel title="Música" icon={<Headphones size={18} />} className="music-panel">
+    <Panel title="Música" icon={<Headphones size={18} />} panel="music" className="music-panel">
       {source ? (
         <>
           <div className="now-playing">
@@ -85,7 +88,7 @@ export function MusicPanel() {
           {source.provider === 'youtube' ? (
             <YouTubePlayer key={currentUrl} videoId={source.videoId} listId={source.listId} />
           ) : (
-            <SpotifyPlayer key={currentUrl} kind={source.kind} id={source.id} />
+            <SpotifyPlayer key={`${currentUrl}-${accounts.versions.spotify}`} kind={source.kind} id={source.id} />
           )}
         </>
       ) : (
@@ -143,13 +146,16 @@ export function MusicPanel() {
         })}
       </ul>
 
-      <p className="hint hint-box">
-        <Info size={14} aria-hidden="true" />
-        <span>
-          Para escuchar canciones completas de Spotify, inicia sesión en open.spotify.com en este navegador (sin
-          sesión solo suenan 30 s). Los enlaces de YouTube Music suenan con el reproductor de YouTube.
-        </span>
-      </p>
+      <div className="hint hint-box hint-stack">
+        <p className="hint-row">
+          <Info size={14} aria-hidden="true" />
+          <span>
+            Sin cuenta de Spotify solo suenan 30 s de cada canción. Los enlaces de YouTube Music suenan con el
+            reproductor de YouTube.
+          </span>
+        </p>
+        <LoginButton service="spotify" />
+      </div>
     </Panel>
   )
 }

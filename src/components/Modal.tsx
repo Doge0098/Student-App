@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
 
 interface ModalProps {
@@ -6,10 +7,12 @@ interface ModalProps {
   icon?: ReactNode
   /** Si no se pasa, el modal no se puede cerrar con Escape: hay que elegir una opción. */
   onClose?: () => void
+  /** Ventana más ancha y alineada a la izquierda, para ajustes. */
+  wide?: boolean
   children: ReactNode
 }
 
-export function Modal({ open, title, icon, onClose, children }: ModalProps) {
+export function Modal({ open, title, icon, onClose, wide = false, children }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -22,7 +25,7 @@ export function Modal({ open, title, icon, onClose, children }: ModalProps) {
   return (
     <dialog
       ref={ref}
-      className="modal"
+      className={`modal ${wide ? 'modal-wide' : ''}`}
       aria-labelledby="modal-title"
       onCancel={(e) => {
         e.preventDefault()
@@ -31,6 +34,11 @@ export function Modal({ open, title, icon, onClose, children }: ModalProps) {
     >
       {open && (
         <div className="modal-content">
+          {onClose && (
+            <button type="button" className="icon-btn modal-close" aria-label="Cerrar" onClick={onClose}>
+              <X size={18} />
+            </button>
+          )}
           {icon && (
             <div className="modal-icon" aria-hidden="true">
               {icon}

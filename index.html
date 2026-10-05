@@ -10,8 +10,9 @@
     <script>
       // Aplica el tema guardado antes de pintar, para evitar un parpadeo.
       try {
-        const saved = JSON.parse(localStorage.getItem('student-app:theme') || 'null')
-        const dark = saved ? saved === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches
+        const saved = JSON.parse(localStorage.getItem('student-app:appearance') || 'null')
+        const theme = saved && saved.theme
+        const dark = theme === 'dark' || ((!theme || theme === 'system') && matchMedia('(prefers-color-scheme: dark)').matches)
         document.documentElement.dataset.theme = dark ? 'dark' : 'light'
       } catch (e) {}
     </script>

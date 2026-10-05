@@ -48,6 +48,7 @@ export function TaskList() {
   return (
     <Panel
       title="Tareas"
+      panel="tasks"
       icon={<ListTodo size={18} />}
       className="tasks-panel"
       actions={<span className="badge">{pending} pendientes</span>}

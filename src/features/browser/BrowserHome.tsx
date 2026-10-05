@@ -4,6 +4,7 @@ import { SubjectPicker } from '../../components/SubjectPicker'
 import { SUBJECTS, type SubjectId } from '../../lib/subjects'
 import { timeAgo } from '../../lib/time'
 import { CATEGORIES, siteName } from '../../lib/web'
+import { LoginButton } from '../accounts/LoginButton'
 import { GOOGLE_APPS, GOOGLE_CREATE, STUDY_TOOLS, type QuickLink } from './links'
 import { SiteIcon } from './SiteIcon'
 import type { HistoryItem } from './types'
@@ -207,9 +208,12 @@ export function BrowserHome({ history, onOpen, onUpdate, onRemove }: BrowserHome
       </section>
 
       <section className="home-section" aria-labelledby="google-title">
-        <h3 className="section-title" id="google-title">
-          <LayoutGrid size={16} aria-hidden="true" /> Google
-        </h3>
+        <div className="section-head">
+          <h3 className="section-title" id="google-title">
+            <LayoutGrid size={16} aria-hidden="true" /> Google
+          </h3>
+          <LoginButton service="google" />
+        </div>
         <LinkGrid links={GOOGLE_APPS} onOpen={openTool} />
         <div className="create-row">
           <span className="create-label">Crear nuevo:</span>
@@ -218,8 +222,8 @@ export function BrowserHome({ history, onOpen, onUpdate, onRemove }: BrowserHome
         <p className="hint hint-box">
           <Info size={14} aria-hidden="true" />
           <span>
-            ¿Tienes un Doc, Hoja o Presentación? Pega su enlace en la barra de arriba: se abrirá aquí dentro (con tu
-            sesión de Google iniciada en este navegador) y quedará guardado en «Continuar».
+            ¿Tienes un Doc, Hoja o Presentación? Pega su enlace en la barra de arriba: se abrirá aquí dentro (si has
+            entrado en tu cuenta de Google) y quedará guardado en «Continuar».
           </span>
         </p>
       </section>

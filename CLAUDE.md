@@ -40,6 +40,16 @@ La interfaz está en español.
 - **Temporizador**: guarda la hora de fin (`endsAt`), no una cuenta atrás, para no desajustarse en
   segundo plano. Sonido con Web Audio + notificación del navegador.
 
+## Sobre una versión instalable (respuesta dada al usuario)
+
+- Web (lo actual): sin instalar, funciona en cualquier ordenador y en Chromebooks; pero muchas webs no se
+  dejan mostrar dentro y no se sabe qué página exacta ve el estudiante.
+- Programa de escritorio (Electron recomendado, porque lleva su propio Chromium): todas las webs dentro,
+  se sabe qué está viendo, sesiones dentro de la app, bloqueo de distracciones más fuerte. Contras:
+  hay que instalarlo (en ordenadores del centro a veces no se puede), no vale en Chromebooks, y Spotify
+  necesita trabajo extra por la protección anticopia (DRM).
+- Se puede reutilizar casi todo el código React actual dentro de Electron.
+
 ## Estructura
 
 ```
@@ -67,8 +77,16 @@ src/
 - [x] Fase 1 (MVP web): temporizador, aviso "¿descansar o seguir?", tareas, música (YouTube/Spotify),
       navegador con clasificación y "Continuar donde lo dejaste", accesos y "Crear nuevo" de Google,
       tema claro/oscuro, diseño adaptado a móvil. Probado en Chromium.
-- [ ] **Pendiente de respuesta del usuario**: ¿quitar Wikipedia (buscador y acceso rápido) o dejarla?
-      ¿Añadir alguna web propia (p. ej. la plataforma de su instituto) a los accesos rápidos?
+- [x] Wikipedia **se queda** (buscador y acceso rápido): el usuario la considera útil.
+- [x] Fase 2:
+  - Inicio de sesión en lo que lo necesita (Google: Docs/Drive/Classroom/YouTube; Spotify: canciones
+    completas). Siempre en la página oficial (ventana emergente), nunca pedimos contraseñas en la app.
+    Al volver, se recargan los reproductores/pestañas que usan esa cuenta.
+  - Personalización: interruptor claro/oscuro (+ automático), color principal y color de cada función
+    (temporizador, tareas, navegador, música) elegidos de una **paleta de colores predefinidos**
+    (nada de selector RGB). Paleta en `src/lib/colors.ts`; cada panel lleva `data-accent` y redefine
+    `--accent` (ver `styles.css`). Cuentas en `src/features/accounts/`.
+- [ ] Decidir con el usuario si se hace versión instalable (ver abajo).
 - [ ] README en español con cómo usarla y arrancarla.
 - [ ] Publicarla en internet (GitHub Pages o similar).
 - [ ] Integración real con Google (OAuth): ver archivos de Drive, eventos de Calendar y sincronizar

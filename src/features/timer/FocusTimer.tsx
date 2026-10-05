@@ -32,7 +32,7 @@ export function FocusTimer() {
   }
 
   return (
-    <Panel title="Temporizador" icon={<Timer size={18} />} className={`timer-panel phase-${phase}`}>
+    <Panel title="Temporizador" icon={<Timer size={18} />} panel="timer" className={`timer-panel phase-${phase}`}>
       <div className="timer-ring" data-phase={phase}>
         <svg viewBox="0 0 120 120" aria-hidden="true">
           <circle className="ring-track" cx="60" cy="60" r={RADIUS} />
