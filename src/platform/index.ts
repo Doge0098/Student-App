@@ -9,6 +9,10 @@ export interface DesktopBridge {
   version: string
   /** Abre un enlace en el navegador del sistema. */
   openExternal: (url: string) => void
+  /** Webs (dominios) que no se pueden abrir ahora dentro de las pestañas, ni siguiendo enlaces. */
+  setBlockedSites: (hosts: string[]) => void
+  /** Avisa cuando se ha impedido abrir una web bloqueada. Devuelve la función para dejar de escuchar. */
+  onBlockedNavigation: (callback: (url: string) => void) => () => void
 }
 
 declare global {
@@ -40,5 +44,17 @@ export const platform = {
     const desktop = bridge()
     if (desktop) desktop.openExternal(url)
     else window.open(url, '_blank', 'noopener,noreferrer')
+  },
+
+  /**
+   * Modo Estricto: estas webs quedan bloqueadas dentro de las pestañas (también al pulsar enlaces).
+   * Solo tiene efecto en escritorio; en la web el navegador no deja vigilar los enlaces de otras webs.
+   */
+  setBlockedSites(hosts: string[]): void {
+    bridge()?.setBlockedSites(hosts)
+  },
+
+  onBlockedNavigation(callback: (url: string) => void): () => void {
+    return bridge()?.onBlockedNavigation(callback) ?? (() => {})
   },
 }

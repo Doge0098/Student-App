@@ -12,11 +12,6 @@ export interface BrowserFrameProps {
    * pulsado un enlace dentro). En la web los navegadores no dejan saberlo.
    */
   onNavigate?: (url: string, title: string) => void
-  /**
-   * Solo en escritorio: antes de ir a otra página dentro de la pestaña.
-   * Devuelve false para impedirlo (p. ej. una distracción en modo Estricto).
-   */
-  onBeforeNavigate?: (url: string) => boolean
 }
 
 /** Página web mostrada dentro de LockIn: iframe en la web; en escritorio, una vista completa. */
